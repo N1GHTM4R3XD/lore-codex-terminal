@@ -10,6 +10,14 @@ interface Props {
   onDelete: (id: string) => void;
 }
 
+const FRAME_CLASS: Record<Character["frame"], string> = {
+  pixel: "frame-pixel",
+  ornament: "frame-ornament",
+  neon: "frame-neon",
+  parchment: "frame-parchment",
+  none: "frame-none",
+};
+
 export const CharacterCard = ({ character, onDelete }: Props) => {
   const { id, name, tagline, avatar, palette, animation, frame } = character;
   const f = character.fonts ?? { display: character.font, body: "Cormorant Garamond", mono: "JetBrains Mono" };
@@ -25,7 +33,7 @@ export const CharacterCard = ({ character, onDelete }: Props) => {
   return (
     <article
       data-palette={palette}
-      className={`relative bg-card text-card-foreground p-4 frame-${frame} group lv-card-scope`}
+      className={`relative bg-card text-card-foreground p-4 ${FRAME_CLASS[frame]} group lv-card-scope`}
       style={fontStyle}
     >
       {/* Animation lives on an inner wrapper so transforms don't fight with hover styling. */}
