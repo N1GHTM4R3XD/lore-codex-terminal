@@ -12,9 +12,13 @@ export default {
     },
     extend: {
       fontFamily: {
-        display: ['Cinzel', 'serif'],
+        display: ['Pixelify Sans', 'Cinzel', 'serif'],
         body: ['"Cormorant Garamond"', 'serif'],
         mono: ['"JetBrains Mono"', 'monospace'],
+        pixel: ['"Press Start 2P"', 'monospace'],
+        'pixel-body': ['VT323', 'monospace'],
+        gothic: ['Cinzel', 'serif'],
+        handwritten: ['Caveat', 'cursive'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -88,6 +92,27 @@ export default {
           "0%, 100%": { transform: "translateY(0)" },
           "50%": { transform: "translateY(-8px)" },
         },
+        "card-float": {
+          "0%,100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-6px)" },
+        },
+        "card-glow": {
+          "0%,100%": { boxShadow: "0 0 0 0 hsl(var(--rune)/0)" },
+          "50%": { boxShadow: "0 0 28px 4px hsl(var(--rune)/0.45)" },
+        },
+        "card-shake": {
+          "0%,100%": { transform: "translateX(0)" },
+          "20%,60%": { transform: "translateX(-2px)" },
+          "40%,80%": { transform: "translateX(2px)" },
+        },
+        "pixel-twinkle": {
+          "0%,100%": { filter: "drop-shadow(0 0 0 hsl(var(--rune)/0))" },
+          "50%": { filter: "drop-shadow(0 0 6px hsl(var(--rune)/0.8))" },
+        },
+        "sparkle": {
+          "0%,100%": { opacity: "0.4", transform: "scale(1)" },
+          "50%": { opacity: "1", transform: "scale(1.04)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -98,6 +123,11 @@ export default {
         "rune-pulse": "rune-pulse 3.5s ease-in-out infinite",
         "shimmer": "shimmer 4s linear infinite",
         "float-slow": "float-slow 6s ease-in-out infinite",
+        "card-float": "card-float 5s ease-in-out infinite",
+        "card-glow": "card-glow 3s ease-in-out infinite",
+        "card-shake": "card-shake 2.2s ease-in-out infinite",
+        "pixel-twinkle": "pixel-twinkle 2.4s ease-in-out infinite",
+        "sparkle": "sparkle 2.6s ease-in-out infinite",
       },
     },
   },
