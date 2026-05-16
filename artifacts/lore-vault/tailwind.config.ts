@@ -12,9 +12,10 @@ export default {
     },
     extend: {
       fontFamily: {
-        display: ['Pixelify Sans', 'Cinzel', 'serif'],
-        body: ['"Cormorant Garamond"', 'serif'],
-        mono: ['"JetBrains Mono"', 'monospace'],
+        // Use CSS variables so per-card font overrides work via --font-display/body/mono
+        display: ['var(--font-display)', 'Pixelify Sans', 'Cinzel', 'serif'],
+        body: ['var(--font-body)', '"Cormorant Garamond"', 'serif'],
+        mono: ['var(--font-mono)', '"JetBrains Mono"', 'monospace'],
         pixel: ['"Press Start 2P"', 'monospace'],
         'pixel-body': ['VT323', 'monospace'],
         gothic: ['Cinzel', 'serif'],

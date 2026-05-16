@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Pencil, Check, Image as ImageIcon, User } from "lucide-react";
+import { useState, useRef } from "react";
+import { Pencil, Check, Image as ImageIcon, User, Upload, Link } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { VaultState } from "@/lib/vault-types";
@@ -7,6 +7,127 @@ import { VaultState } from "@/lib/vault-types";
 interface Props {
   state: VaultState;
   update: (patch: Partial<VaultState>) => void;
+}
+
+/** Reads a File and returns a data: URI string. */
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => resolve(e.target!.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+/** Small image-picker panel used for avatar and background. */
+function ImagePicker({
+  label,
+  current,
+  onSave,
+  onClose,
+  aspectHint,
+}: {
+  label: string;
+  current: string;
+  onSave: (url: string) => void;
+  onClose: () => void;
+  aspectHint?: string;
+}) {
+  const [urlDraft, setUrlDraft] = useState(current);
+  const [mode, setMode] = useState<"url" | "upload">("url");
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const commit = (val: string) => {
+    if (val.trim()) { onSave(val.trim()); onClose(); }
+  };
+
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const dataUrl = await readFileAsDataUrl(file);
+    onSave(dataUrl);
+    onClose();
+  };
+
+  return (
+    <div className="absolute z-20 top-full mt-2 w-80 vault-panel p-4 animate-fade-in space-y-3">
+      <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{label}</p>
+
+      {/* Mode toggle */}
+      <div className="flex items-center gap-1">
+        <button
+          onClick={() => setMode("url")}
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded font-mono text-[10px] uppercase tracking-widest border transition-colors ${
+            mode === "url"
+              ? "border-[hsl(var(--rune)/0.6)] bg-[hsl(var(--rune)/0.1)] text-[hsl(var(--rune))]"
+              : "border-border text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Link className="h-2.5 w-2.5" /> URL
+        </button>
+        <button
+          onClick={() => setMode("upload")}
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded font-mono text-[10px] uppercase tracking-widest border transition-colors ${
+            mode === "upload"
+              ? "border-[hsl(var(--rune)/0.6)] bg-[hsl(var(--rune)/0.1)] text-[hsl(var(--rune))]"
+              : "border-border text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Upload className="h-2.5 w-2.5" /> Plik
+        </button>
+      </div>
+
+      {mode === "url" ? (
+        <>
+          <Input
+            autoFocus
+            placeholder="Wklej URL (np. z Pinteresta)…"
+            value={urlDraft}
+            onChange={(e) => setUrlDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") commit(urlDraft);
+              if (e.key === "Escape") onClose();
+            }}
+            className="font-mono text-sm"
+          />
+          <p className="font-mono text-[9px] text-muted-foreground/60">
+            Pinterest: prawy klik na obraz → Kopiuj adres obrazu
+          </p>
+          <div className="flex gap-2">
+            <Button size="sm" onClick={() => commit(urlDraft)} disabled={!urlDraft.trim()} className="font-mono uppercase text-xs">
+              Zapisz
+            </Button>
+            <Button size="sm" variant="ghost" onClick={onClose} className="font-mono text-xs">
+              Anuluj
+            </Button>
+          </div>
+        </>
+      ) : (
+        <>
+          <div
+            className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-[hsl(var(--rune)/0.5)] hover:bg-[hsl(var(--rune)/0.04)] transition-colors"
+            onClick={() => fileRef.current?.click()}
+          >
+            <Upload className="h-6 w-6 mx-auto mb-2 text-muted-foreground" />
+            <p className="font-mono text-xs text-muted-foreground">Kliknij, aby wybrać plik</p>
+            {aspectHint && (
+              <p className="font-mono text-[9px] text-muted-foreground/50 mt-1">{aspectHint}</p>
+            )}
+          </div>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handleFile}
+          />
+          <Button size="sm" variant="ghost" onClick={onClose} className="font-mono text-xs w-full">
+            Anuluj
+          </Button>
+        </>
+      )}
+    </div>
+  );
 }
 
 export const Hero = ({ state, update }: Props) => {
@@ -49,26 +170,20 @@ export const Hero = ({ state, update }: Props) => {
               )}
             </div>
             <button
-              onClick={() => setAvOpen((v) => !v)}
+              onClick={() => { setAvOpen((v) => !v); setBgOpen(false); }}
               className="absolute -bottom-2 -right-2 h-10 w-10 grid place-items-center rounded-full bg-card border border-border hover:border-[hsl(var(--rune))] transition"
               aria-label="Zmień awatar"
             >
               <ImageIcon className="h-4 w-4" />
             </button>
             {avOpen && (
-              <div className="absolute z-20 top-full mt-2 w-72 vault-panel p-3 animate-fade-in">
-                <Input
-                  placeholder="URL obrazu awatara"
-                  defaultValue={state.avatar}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      update({ avatar: (e.target as HTMLInputElement).value });
-                      setAvOpen(false);
-                    }
-                  }}
-                />
-                <p className="text-xs text-muted-foreground mt-2 font-mono">Wciśnij Enter, aby zapisać</p>
-              </div>
+              <ImagePicker
+                label="Awatar postaci"
+                current={state.avatar}
+                onSave={(url) => update({ avatar: url })}
+                onClose={() => setAvOpen(false)}
+                aspectHint="Najlepiej kwadratowe zdjęcie (1:1)"
+              />
             )}
           </div>
 
@@ -92,7 +207,7 @@ export const Hero = ({ state, update }: Props) => {
                 <h1 className="text-4xl md:text-6xl lg:text-7xl font-display rune-text text-balance leading-tight">
                   {state.name}
                 </h1>
-                <p className="text-lg md:text-xl italic text-[hsl(var(--ink))] max-w-2xl text-balance">
+                <p className="text-lg md:text-xl italic text-[hsl(var(--ink))] max-w-2xl text-balance font-body">
                   {state.tagline}
                 </p>
               </>
@@ -108,31 +223,28 @@ export const Hero = ({ state, update }: Props) => {
                 {editing ? <Check className="h-3.5 w-3.5 mr-1.5" /> : <Pencil className="h-3.5 w-3.5 mr-1.5" />}
                 {editing ? "Zapisz" : "Edytuj kartę"}
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setBgOpen((v) => !v)}
-                className="font-mono uppercase tracking-wider text-xs"
-              >
-                <ImageIcon className="h-3.5 w-3.5 mr-1.5" />
-                Tło
-              </Button>
-            </div>
-            {bgOpen && (
-              <div className="vault-panel p-3 max-w-md animate-fade-in">
-                <Input
-                  placeholder="URL obrazu tła hero"
-                  defaultValue={state.background}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      update({ background: (e.target as HTMLInputElement).value });
-                      setBgOpen(false);
-                    }
-                  }}
-                />
-                <p className="text-xs text-muted-foreground mt-2 font-mono">Enter zapisuje</p>
+
+              <div className="relative">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => { setBgOpen((v) => !v); setAvOpen(false); }}
+                  className="font-mono uppercase tracking-wider text-xs"
+                >
+                  <ImageIcon className="h-3.5 w-3.5 mr-1.5" />
+                  Tło
+                </Button>
+                {bgOpen && (
+                  <ImagePicker
+                    label="Obraz tła hero"
+                    current={state.background}
+                    onSave={(url) => update({ background: url })}
+                    onClose={() => setBgOpen(false)}
+                    aspectHint="Najlepiej panoramiczne (16:9 lub szerzej)"
+                  />
+                )}
               </div>
-            )}
+            </div>
           </div>
         </div>
       </div>

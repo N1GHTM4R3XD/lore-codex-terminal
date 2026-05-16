@@ -68,6 +68,11 @@
     --sidebar-accent-foreground: 38 30% 88%;
     --sidebar-border: 30 18% 22%;
     --sidebar-ring: 28 50% 65%;
+
+    /* Default font family stacks — overridden per-card via inline style on .lv-card-scope */
+    --font-display: "Pixelify Sans", Cinzel, serif;
+    --font-body: "Cormorant Garamond", serif;
+    --font-mono: "JetBrains Mono", monospace;
   }
 
   [data-palette="pixel-dark"] {
