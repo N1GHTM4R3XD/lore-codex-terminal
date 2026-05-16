@@ -53,6 +53,9 @@ export interface BoardNote {
   imageUrl?: string;
 }
 
+export type BrushType = "pen" | "marker" | "pencil" | "ink";
+export type BgPattern = "none" | "grid" | "lines" | "dots";
+
 /** A free-hand stroke on the whiteboard sketch layer. */
 export interface BoardStroke {
   id: string;
@@ -60,11 +63,17 @@ export interface BoardStroke {
   size: number;
   /** flattened [x0,y0,x1,y1,...] in board coords */
   points: number[];
+  /** One pressure value (0–1) per point pair. Optional — only from stylus. */
+  pressure?: number[];
+  brushType?: BrushType;
 }
 
 export interface Whiteboard {
   notes: BoardNote[];
   strokes: BoardStroke[];
+  bgColor?: string;
+  bgPattern?: BgPattern;
+  bgPatternColor?: string;
 }
 
 /** Per-character display fonts. Each is a Google Font family name. */

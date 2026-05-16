@@ -1,10 +1,153 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { LayoutDashboard, Plus, Trash2, Image as ImageIcon, Pencil, Hand, Eraser, Save } from "lucide-react";
+import {
+  LayoutDashboard, Plus, Trash2, Image as ImageIcon,
+  Pencil, Hand, Eraser, Save, ZoomIn, ZoomOut,
+  Undo2, Redo2, Palette,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { BoardNote, BoardStroke, Whiteboard } from "@/lib/vault-types";
+import { BoardNote, BoardStroke, BrushType, BgPattern, Whiteboard } from "@/lib/vault-types";
 import { cn } from "@/lib/utils";
 
+/* ─── Types ─────────────────────────────────────────────────── */
+type Tool = "pan" | "draw" | "erase";
+interface Viewport { x: number; y: number; scale: number; }
+
+/* ─── Constants ──────────────────────────────────────────────── */
+const GRID = 32;
+const MIN_SCALE = 0.08;
+const MAX_SCALE = 12;
+const STICKY_COLORS = ["#f7d774", "#e89a9a", "#a8d8a0", "#8fc4d8", "#cfa8e0", "#f0c89e"];
+
+/* ─── Pure helpers ───────────────────────────────────────────── */
+function pressureFactor(p: number, brush: BrushType): number {
+  const n = p <= 0 ? 0.5 : p;
+  switch (brush) {
+    case "ink":    return 0.15 + n * 1.7;
+    case "pen":    return 0.55 + n * 0.7;
+    case "pencil": return 0.35 + n * 1.0;
+    case "marker": return 1;
+  }
+}
+
+function brushAlpha(brush: BrushType): number {
+  switch (brush) {
+    case "marker": return 0.42;
+    case "pencil": return 0.62;
+    default:       return 1;
+  }
+}
+
+function drawStrokeOnCtx(
+  ctx: CanvasRenderingContext2D,
+  s: BoardStroke,
+  vp: Viewport,
+) {
+  const pts = s.points;
+  if (pts.length < 4) return;
+  const brush: BrushType = (s.brushType as BrushType) ?? "pen";
+  const alpha = brushAlpha(brush);
+
+  ctx.save();
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.strokeStyle = s.color;
+  ctx.globalAlpha = alpha;
+
+  const prs = s.pressure;
+
+  if (prs && prs.length > 1) {
+    const count = Math.floor(pts.length / 2) - 1;
+    for (let i = 0; i < count; i++) {
+      const p0 = prs[i] ?? 0.5;
+      const p1 = prs[i + 1] ?? p0;
+      const w = s.size * ((pressureFactor(p0, brush) + pressureFactor(p1, brush)) / 2) * vp.scale;
+      ctx.lineWidth = Math.max(0.5, w);
+      ctx.beginPath();
+      ctx.moveTo(pts[i * 2] * vp.scale + vp.x, pts[i * 2 + 1] * vp.scale + vp.y);
+      ctx.lineTo(pts[(i + 1) * 2] * vp.scale + vp.x, pts[(i + 1) * 2 + 1] * vp.scale + vp.y);
+      ctx.stroke();
+    }
+  } else {
+    ctx.lineWidth = Math.max(0.5, s.size * vp.scale);
+    ctx.beginPath();
+    ctx.moveTo(pts[0] * vp.scale + vp.x, pts[1] * vp.scale + vp.y);
+    for (let i = 2; i < pts.length; i += 2) {
+      ctx.lineTo(pts[i] * vp.scale + vp.x, pts[i + 1] * vp.scale + vp.y);
+    }
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/** Erase all stroke points within radius r (board coords). Returns updated stroke list. */
+function eraseAtPoint(
+  strokes: BoardStroke[],
+  bx: number, by: number, r: number,
+): BoardStroke[] {
+  const r2 = r * r;
+  const result: BoardStroke[] = [];
+
+  for (const s of strokes) {
+    const n = Math.floor(s.points.length / 2);
+    const keep: boolean[] = [];
+    for (let i = 0; i < n; i++) {
+      const dx = s.points[i * 2] - bx;
+      const dy = s.points[i * 2 + 1] - by;
+      keep.push(dx * dx + dy * dy > r2);
+    }
+
+    if (keep.every(Boolean)) { result.push(s); continue; }
+    if (!keep.some(Boolean)) { continue; }
+
+    let seg: number[] = [];
+    let segPr: number[] = [];
+    for (let i = 0; i < n; i++) {
+      if (keep[i]) {
+        seg.push(s.points[i * 2], s.points[i * 2 + 1]);
+        if (s.pressure) segPr.push(s.pressure[i]);
+      } else {
+        if (seg.length >= 4) {
+          result.push({ ...s, id: crypto.randomUUID(), points: seg, pressure: segPr.length ? segPr : undefined });
+        }
+        seg = []; segPr = [];
+      }
+    }
+    if (seg.length >= 4) {
+      result.push({ ...s, id: crypto.randomUUID(), points: seg, pressure: segPr.length ? segPr : undefined });
+    }
+  }
+  return result;
+}
+
+function bgStyle(color: string, pattern: BgPattern, patColor: string, vp: Viewport): React.CSSProperties {
+  const gx = GRID * vp.scale;
+  const ox = ((vp.x % gx) + gx) % gx;
+  const oy = ((vp.y % gx) + gx) % gx;
+  const base: React.CSSProperties = { backgroundColor: color };
+  if (pattern === "none") return base;
+  if (pattern === "grid") return {
+    ...base,
+    backgroundImage: `linear-gradient(${patColor} 1px,transparent 1px),linear-gradient(90deg,${patColor} 1px,transparent 1px)`,
+    backgroundSize: `${gx}px ${gx}px`,
+    backgroundPosition: `${ox}px ${oy}px`,
+  };
+  if (pattern === "lines") return {
+    ...base,
+    backgroundImage: `linear-gradient(${patColor} 1px,transparent 1px)`,
+    backgroundSize: `${gx}px ${gx}px`,
+    backgroundPosition: `${ox}px ${oy}px`,
+  };
+  if (pattern === "dots") return {
+    ...base,
+    backgroundImage: `radial-gradient(circle,${patColor} 1.5px,transparent 1.5px)`,
+    backgroundSize: `${gx}px ${gx}px`,
+    backgroundPosition: `${ox}px ${oy}px`,
+  };
+  return base;
+}
+
+/* ─── Main Component ─────────────────────────────────────────── */
 interface Props {
   board: Whiteboard;
   onChange: (next: Whiteboard) => void;
@@ -12,137 +155,265 @@ interface Props {
   hideHeader?: boolean;
 }
 
-type Tool = "pan" | "draw" | "erase";
-
-const STICKY_COLORS = ["#f7d774", "#e89a9a", "#a8d8a0", "#8fc4d8", "#cfa8e0", "#f0c89e"];
-
 export const WhiteboardCanvas = ({ board, onChange, title = "Tablica", hideHeader }: Props) => {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [tool, setTool] = useState<Tool>("pan");
-  const [color, setColor] = useState("#e0b06a");
-  const [size, setSize] = useState(3);
-  const drawingRef = useRef<BoardStroke | null>(null);
-  const draggingRef = useRef<{ id: string; ox: number; oy: number } | null>(null);
-  const [dims, setDims] = useState({ w: 1200, h: 800 });
 
-  useEffect(() => {
-    const el = wrapRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver(() => {
-      setDims({ w: el.clientWidth, h: Math.max(600, el.clientHeight) });
-    });
-    ro.observe(el);
-    setDims({ w: el.clientWidth, h: Math.max(600, el.clientHeight) });
-    return () => ro.disconnect();
+  /* tools */
+  const [tool, setTool] = useState<Tool>("pan");
+  const [brushType, setBrushType] = useState<BrushType>("pen");
+  const [color, setColor] = useState("#e0b06a");
+  const [size, setSize] = useState(4);
+  const [eraserSize, setEraserSize] = useState(24);
+
+  /* viewport */
+  const [vp, setVp] = useState<Viewport>({ x: 0, y: 0, scale: 1 });
+
+  /* background */
+  const [showBg, setShowBg] = useState(false);
+  const [bgColor, setBgColor] = useState(board.bgColor ?? "#0f0d0a");
+  const [bgPat, setBgPat] = useState<BgPattern>(board.bgPattern ?? "grid");
+  const [bgPatColor, setBgPatColor] = useState(board.bgPatternColor ?? "rgba(255,255,255,0.08)");
+
+  /* undo / redo */
+  const [undoStack, setUndoStack] = useState<Whiteboard[]>([]);
+  const [redoStack, setRedoStack] = useState<Whiteboard[]>([]);
+
+  /* in-progress refs */
+  const drawingRef = useRef<{ stroke: BoardStroke; pressures: number[] } | null>(null);
+  const panRef = useRef<{ sx0: number; sy0: number; vx0: number; vy0: number } | null>(null);
+  const eraserWorkRef = useRef<BoardStroke[]>([]);
+  const isErasingRef = useRef(false);
+  const dragNoteRef = useRef<{ id: string; ox: number; oy: number } | null>(null);
+
+  /* viewport ref for callbacks that close over it */
+  const vpRef = useRef(vp);
+  useEffect(() => { vpRef.current = vp; }, [vp]);
+
+  /* ── undo helpers ───────────────────────────────────────────── */
+  const pushUndo = useCallback((prev: Whiteboard) => {
+    setUndoStack(s => [...s.slice(-39), prev]);
+    setRedoStack([]);
   }, []);
 
-  const fullRepaint = useCallback(() => {
+  const undo = useCallback(() => {
+    if (!undoStack.length) return;
+    setRedoStack(r => [...r, board]);
+    const prev = undoStack[undoStack.length - 1];
+    setUndoStack(s => s.slice(0, -1));
+    onChange(prev);
+  }, [undoStack, board, onChange]);
+
+  const redo = useCallback(() => {
+    if (!redoStack.length) return;
+    setUndoStack(s => [...s, board]);
+    const next = redoStack[redoStack.length - 1];
+    setRedoStack(r => r.slice(0, -1));
+    onChange(next);
+  }, [redoStack, board, onChange]);
+
+  /* ── canvas repaint ─────────────────────────────────────────── */
+  const repaint = useCallback(() => {
+    const wrap = wrapRef.current;
     const c = canvasRef.current;
-    if (!c) return;
+    if (!wrap || !c) return;
+    const W = wrap.clientWidth, H = wrap.clientHeight;
     const dpr = window.devicePixelRatio || 1;
-    c.width = dims.w * dpr;
-    c.height = dims.h * dpr;
-    c.style.width = dims.w + "px";
-    c.style.height = dims.h + "px";
+    c.width = W * dpr; c.height = H * dpr;
+    c.style.width = W + "px"; c.style.height = H + "px";
     const ctx = c.getContext("2d");
     if (!ctx) return;
     ctx.scale(dpr, dpr);
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    ctx.clearRect(0, 0, dims.w, dims.h);
-    [...board.strokes, drawingRef.current].forEach((s) => {
-      if (!s || s.points.length < 2) return;
-      ctx.strokeStyle = s.color;
-      ctx.lineWidth = s.size;
-      ctx.beginPath();
-      ctx.moveTo(s.points[0], s.points[1]);
-      for (let i = 2; i < s.points.length; i += 2) ctx.lineTo(s.points[i], s.points[i + 1]);
-      ctx.stroke();
+    ctx.clearRect(0, 0, W, H);
+    const strokes = isErasingRef.current ? eraserWorkRef.current : board.strokes;
+    strokes.forEach(s => drawStrokeOnCtx(ctx, s, vpRef.current));
+    if (drawingRef.current) {
+      drawStrokeOnCtx(ctx, { ...drawingRef.current.stroke, pressure: drawingRef.current.pressures }, vpRef.current);
+    }
+  }, [board.strokes]);
+
+  useEffect(() => { repaint(); }, [repaint]);
+
+  /* ── keyboard: undo/redo ────────────────────────────────────── */
+  useEffect(() => {
+    const fn = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === "z") { e.preventDefault(); undo(); }
+      if ((e.ctrlKey || e.metaKey) && (e.key === "y" || (e.shiftKey && e.key === "z"))) { e.preventDefault(); redo(); }
+    };
+    window.addEventListener("keydown", fn);
+    return () => window.removeEventListener("keydown", fn);
+  }, [undo, redo]);
+
+  /* ── wheel zoom ─────────────────────────────────────────────── */
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const rect = el.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      const factor = e.deltaY > 0 ? 0.92 : 1.09;
+      setVp(v => {
+        const ns = Math.min(MAX_SCALE, Math.max(MIN_SCALE, v.scale * factor));
+        const ratio = ns / v.scale;
+        return { scale: ns, x: mx - ratio * (mx - v.x), y: my - ratio * (my - v.y) };
+      });
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
+
+  const zoomAt = (factor: number) => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const cx = el.clientWidth / 2, cy = el.clientHeight / 2;
+    setVp(v => {
+      const ns = Math.min(MAX_SCALE, Math.max(MIN_SCALE, v.scale * factor));
+      const r = ns / v.scale;
+      return { scale: ns, x: cx - r * (cx - v.x), y: cy - r * (cy - v.y) };
     });
-  }, [board.strokes, dims.w, dims.h]);
-
-  useEffect(() => { fullRepaint(); }, [fullRepaint]);
-
-  const localXY = (e: React.PointerEvent) => {
-    const r = wrapRef.current!.getBoundingClientRect();
-    return { x: e.clientX - r.left, y: e.clientY - r.top };
   };
 
+  /* ── coord helpers ──────────────────────────────────────────── */
+  const localXY = (e: React.PointerEvent) => {
+    const r = wrapRef.current!.getBoundingClientRect();
+    return { sx: e.clientX - r.left, sy: e.clientY - r.top };
+  };
+
+  const toBoard = (sx: number, sy: number, v: Viewport): [number, number] => [
+    (sx - v.x) / v.scale,
+    (sy - v.y) / v.scale,
+  ];
+
+  /* ── pointer events ─────────────────────────────────────────── */
   const onPointerDown = (e: React.PointerEvent) => {
-    if (tool === "draw" || tool === "erase") {
-      (e.target as Element).setPointerCapture?.(e.pointerId);
-      const { x, y } = localXY(e);
-      if (tool === "erase") {
-        const next = board.strokes.filter((s) => !pointNearStroke(s, x, y, size * 6));
-        if (next.length !== board.strokes.length) onChange({ ...board, strokes: next });
-        return;
-      }
+    const { sx, sy } = localXY(e);
+    const v = vpRef.current;
+
+    if (tool === "pan") {
+      panRef.current = { sx0: sx, sy0: sy, vx0: v.x, vy0: v.y };
+      (e.currentTarget as Element).setPointerCapture(e.pointerId);
+      return;
+    }
+
+    if (tool === "draw") {
+      (e.currentTarget as Element).setPointerCapture(e.pointerId);
+      const [bx, by] = toBoard(sx, sy, v);
+      const p = e.pressure <= 0 ? 0.5 : e.pressure;
       drawingRef.current = {
-        id: crypto.randomUUID(),
-        color,
-        size,
-        points: [x, y],
+        stroke: { id: crypto.randomUUID(), color, size, brushType, points: [bx, by] },
+        pressures: [p],
       };
+      return;
+    }
+
+    if (tool === "erase") {
+      (e.currentTarget as Element).setPointerCapture(e.pointerId);
+      isErasingRef.current = true;
+      eraserWorkRef.current = [...board.strokes];
+      const [bx, by] = toBoard(sx, sy, v);
+      const r = (eraserSize / 2) / v.scale;
+      eraserWorkRef.current = eraseAtPoint(eraserWorkRef.current, bx, by, r);
+      repaint();
     }
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
-    const { x, y } = localXY(e);
+    const { sx, sy } = localXY(e);
+    const v = vpRef.current;
 
-    if (drawingRef.current) {
-      const pts = drawingRef.current.points;
-      const prevX = pts[pts.length - 2];
-      const prevY = pts[pts.length - 1];
-      drawingRef.current.points.push(x, y);
-
-      const c = canvasRef.current;
-      if (c && prevX !== undefined) {
-        const ctx = c.getContext("2d");
-        if (ctx) {
-          ctx.lineCap = "round";
-          ctx.lineJoin = "round";
-          ctx.strokeStyle = drawingRef.current.color;
-          ctx.lineWidth = drawingRef.current.size;
-          ctx.beginPath();
-          ctx.moveTo(prevX, prevY);
-          ctx.lineTo(x, y);
-          ctx.stroke();
-        }
-      }
+    if (dragNoteRef.current) {
+      const d = dragNoteRef.current;
+      const nbx = (sx - d.ox - v.x) / v.scale;
+      const nby = (sy - d.oy - v.y) / v.scale;
+      onChange({ ...board, notes: board.notes.map(n => n.id === d.id ? { ...n, x: nbx, y: nby } : n) });
+      return;
     }
 
-    if (draggingRef.current) {
-      const d = draggingRef.current;
-      onChange({
-        ...board,
-        notes: board.notes.map((n) =>
-          n.id === d.id ? { ...n, x: Math.max(0, x - d.ox), y: Math.max(0, y - d.oy) } : n
-        ),
-      });
+    if (panRef.current) {
+      const p = panRef.current;
+      setVp(v => ({ ...v, x: p.vx0 + (sx - p.sx0), y: p.vy0 + (sy - p.sy0) }));
+      return;
+    }
+
+    if (drawingRef.current) {
+      const [bx, by] = toBoard(sx, sy, v);
+      const pts = drawingRef.current.stroke.points;
+      const prevBx = pts[pts.length - 2];
+      const prevBy = pts[pts.length - 1];
+      const dx = bx - prevBx, dy = by - prevBy;
+      if (dx * dx + dy * dy < 0.3) return;
+      const p = e.pressure <= 0 ? 0.5 : e.pressure;
+      drawingRef.current.stroke.points.push(bx, by);
+      drawingRef.current.pressures.push(p);
+      repaint();
+      return;
+    }
+
+    if (isErasingRef.current) {
+      const [bx, by] = toBoard(sx, sy, v);
+      const r = (eraserSize / 2) / v.scale;
+      eraserWorkRef.current = eraseAtPoint(eraserWorkRef.current, bx, by, r);
+      repaint();
     }
   };
 
   const onPointerUp = () => {
-    if (drawingRef.current && drawingRef.current.points.length > 2) {
-      onChange({ ...board, strokes: [...board.strokes, drawingRef.current] });
+    panRef.current = null;
+    dragNoteRef.current = null;
+
+    if (drawingRef.current) {
+      const { stroke, pressures } = drawingRef.current;
+      if (stroke.points.length >= 4) {
+        pushUndo(board);
+        onChange({ ...board, strokes: [...board.strokes, { ...stroke, pressure: pressures }] });
+      }
+      drawingRef.current = null;
+      repaint();
     }
-    drawingRef.current = null;
-    draggingRef.current = null;
+
+    if (isErasingRef.current) {
+      isErasingRef.current = false;
+      const next = eraserWorkRef.current;
+      if (next.length !== board.strokes.length || JSON.stringify(next) !== JSON.stringify(board.strokes)) {
+        pushUndo(board);
+        onChange({ ...board, strokes: next });
+      }
+      eraserWorkRef.current = [];
+      repaint();
+    }
+  };
+
+  /* ── note helpers ───────────────────────────────────────────── */
+  const noteDown = (e: React.PointerEvent, n: BoardNote) => {
+    if (tool !== "pan") return;
+    e.stopPropagation();
+    const { sx, sy } = localXY(e);
+    const v = vpRef.current;
+    dragNoteRef.current = {
+      id: n.id,
+      ox: sx - n.x * v.scale - v.x,
+      oy: sy - n.y * v.scale - v.y,
+    };
+    (e.currentTarget as Element).setPointerCapture(e.pointerId);
   };
 
   const addNote = (extra?: Partial<BoardNote>) => {
+    const v = vpRef.current;
+    const el = wrapRef.current;
+    const [bx, by] = toBoard((el?.clientWidth ?? 600) / 2, (el?.clientHeight ?? 400) / 2, v);
     const note: BoardNote = {
       id: crypto.randomUUID(),
-      x: 40 + Math.random() * 200,
-      y: 40 + Math.random() * 200,
-      w: 200,
-      h: 160,
+      x: bx - 100 + Math.random() * 60,
+      y: by - 80 + Math.random() * 40,
+      w: 200, h: 160,
       rotate: (Math.random() - 0.5) * 8,
       color: STICKY_COLORS[Math.floor(Math.random() * STICKY_COLORS.length)],
       text: "Nowa notatka…",
       ...extra,
     };
+    pushUndo(board);
     onChange({ ...board, notes: [...board.notes, note] });
   };
 
@@ -152,72 +423,173 @@ export const WhiteboardCanvas = ({ board, onChange, title = "Tablica", hideHeade
     addNote({ imageUrl: url, text: "", w: 220, h: 220, color: "rgba(20,20,20,0.85)" });
   };
 
-  const updateNote = (id: string, p: Partial<BoardNote>) =>
-    onChange({ ...board, notes: board.notes.map((n) => (n.id === id ? { ...n, ...p } : n)) });
-  const removeNote = (id: string) =>
-    onChange({ ...board, notes: board.notes.filter((n) => n.id !== id) });
-
-  const noteDown = (e: React.PointerEvent, n: BoardNote) => {
-    if (tool !== "pan") return;
-    e.stopPropagation();
-    const { x, y } = localXY(e);
-    draggingRef.current = { id: n.id, ox: x - n.x, oy: y - n.y };
-    (e.target as Element).setPointerCapture?.(e.pointerId);
+  const removeNote = (id: string) => {
+    pushUndo(board);
+    onChange({ ...board, notes: board.notes.filter(n => n.id !== id) });
   };
 
-  const clearBoard = useCallback(() => {
-    if (confirm("Wyczyścić całą tablicę?")) onChange({ notes: [], strokes: [] });
-  }, [onChange]);
+  const updateNote = (id: string, p: Partial<BoardNote>) =>
+    onChange({ ...board, notes: board.notes.map(n => n.id === id ? { ...n, ...p } : n) });
 
+  /* ── background persist ─────────────────────────────────────── */
+  const applyBg = (patch: { bgColor?: string; bgPattern?: BgPattern; bgPatternColor?: string }) => {
+    const next = {
+      bgColor: patch.bgColor ?? bgColor,
+      bgPattern: patch.bgPattern ?? bgPat,
+      bgPatternColor: patch.bgPatternColor ?? bgPatColor,
+    };
+    if (patch.bgColor !== undefined) setBgColor(patch.bgColor);
+    if (patch.bgPattern !== undefined) setBgPat(patch.bgPattern);
+    if (patch.bgPatternColor !== undefined) setBgPatColor(patch.bgPatternColor);
+    onChange({ ...board, ...next });
+  };
+
+  /* ── cursor ─────────────────────────────────────────────────── */
+  const cursor = tool === "draw" ? "crosshair" : tool === "erase" ? "cell" : panRef.current ? "grabbing" : "grab";
+
+  /* ─────────────────────────────────────────── render ─── */
   return (
-    <section className="space-y-4">
-      {!hideHeader && (
-        <header className="flex items-center justify-between flex-wrap gap-3">
-          <h2 className="font-display text-2xl flex items-center gap-2">
+    <section className="space-y-3">
+      {/* Toolbar */}
+      <div className="flex items-center flex-wrap gap-2">
+        {!hideHeader && (
+          <h2 className="font-display text-2xl flex items-center gap-2 mr-auto">
             <LayoutDashboard className="h-5 w-5 text-[hsl(var(--rune))]" />
             {title}
           </h2>
-          <div className="flex flex-wrap items-center gap-2">
-            <ToolBar
-              tool={tool}
-              setTool={setTool}
-              color={color}
-              setColor={setColor}
-              size={size}
-              setSize={setSize}
-              onAddNote={() => addNote()}
-              onAddImage={addImage}
-              onClear={clearBoard}
-            />
-          </div>
-        </header>
-      )}
+        )}
 
-      {hideHeader && (
-        <div className="flex flex-wrap items-center gap-2">
-          <ToolBar
-            tool={tool}
-            setTool={setTool}
-            color={color}
-            setColor={setColor}
-            size={size}
-            setSize={setSize}
-            onAddNote={() => addNote()}
-            onAddImage={addImage}
-            onClear={clearBoard}
-          />
+        {/* Tool picker */}
+        <div className="vault-panel rounded-full p-1 flex gap-0.5">
+          {([
+            { id: "pan" as Tool, icon: Hand, label: "Przesuwaj" },
+            { id: "draw" as Tool, icon: Pencil, label: "Rysuj" },
+            { id: "erase" as Tool, icon: Eraser, label: "Gumka" },
+          ] as const).map(({ id, icon: Icon, label }) => (
+            <button
+              key={id} onClick={() => setTool(id)} title={label} aria-pressed={tool === id}
+              className={cn("h-8 w-8 grid place-items-center rounded-full transition",
+                tool === id ? "bg-[hsl(var(--rune))] text-[hsl(var(--primary-foreground))]" : "text-muted-foreground hover:text-[hsl(var(--rune))]")}
+            >
+              <Icon className="h-4 w-4" />
+            </button>
+          ))}
+        </div>
+
+        {/* Draw options */}
+        {tool === "draw" && (
+          <div className="vault-panel rounded-full px-3 py-1 flex items-center gap-1.5 flex-wrap">
+            {(["pen", "marker", "pencil", "ink"] as BrushType[]).map(b => (
+              <button key={b} onClick={() => setBrushType(b)} title={b}
+                className={cn("font-mono text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full transition",
+                  brushType === b ? "bg-[hsl(var(--rune)/0.25)] text-[hsl(var(--rune))]" : "text-muted-foreground hover:text-foreground")}
+              >{b}</button>
+            ))}
+            <div className="w-px h-4 bg-border mx-0.5" />
+            <input type="color" value={color} onChange={e => setColor(e.target.value)}
+              className="h-7 w-7 rounded-full border border-border bg-transparent cursor-pointer" title="Kolor" />
+            <Input type="number" min={1} max={60} value={size}
+              onChange={e => setSize(Math.max(1, +e.target.value || 1))}
+              className="w-12 font-mono text-xs h-7 px-2" title="Grubość" />
+          </div>
+        )}
+
+        {/* Eraser size */}
+        {tool === "erase" && (
+          <div className="vault-panel rounded-full px-3 py-1 flex items-center gap-1.5">
+            <span className="font-mono text-[10px] text-muted-foreground uppercase">Promień:</span>
+            <Input type="number" min={4} max={200} value={eraserSize}
+              onChange={e => setEraserSize(Math.max(4, +e.target.value || 4))}
+              className="w-14 font-mono text-xs h-7 px-2" title="Promień gumki (px ekranu)" />
+          </div>
+        )}
+
+        {/* Zoom */}
+        <div className="vault-panel rounded-full p-1 flex gap-0.5 items-center">
+          <button onClick={() => zoomAt(0.8)} title="Oddal (scroll)"
+            className="h-7 w-7 grid place-items-center rounded-full text-muted-foreground hover:text-foreground transition">
+            <ZoomOut className="h-3.5 w-3.5" />
+          </button>
+          <button onClick={() => setVp({ x: 0, y: 0, scale: 1 })} title="Resetuj widok"
+            className="font-mono text-[10px] px-2 text-muted-foreground hover:text-foreground transition min-w-[3rem] text-center">
+            {Math.round(vp.scale * 100)}%
+          </button>
+          <button onClick={() => zoomAt(1.25)} title="Przybliż (scroll)"
+            className="h-7 w-7 grid place-items-center rounded-full text-muted-foreground hover:text-foreground transition">
+            <ZoomIn className="h-3.5 w-3.5" />
+          </button>
+        </div>
+
+        {/* Undo / Redo */}
+        <div className="vault-panel rounded-full p-1 flex gap-0.5">
+          <button onClick={undo} disabled={!undoStack.length} title="Cofnij (Ctrl+Z)"
+            className="h-7 w-7 grid place-items-center rounded-full text-muted-foreground hover:text-foreground transition disabled:opacity-25">
+            <Undo2 className="h-3.5 w-3.5" />
+          </button>
+          <button onClick={redo} disabled={!redoStack.length} title="Przywróć (Ctrl+Y)"
+            className="h-7 w-7 grid place-items-center rounded-full text-muted-foreground hover:text-foreground transition disabled:opacity-25">
+            <Redo2 className="h-3.5 w-3.5" />
+          </button>
+        </div>
+
+        {/* Add note / image */}
+        <Button size="sm" variant="outline" onClick={() => addNote()} className="font-mono uppercase text-xs">
+          <Plus className="h-3.5 w-3.5 mr-1" />Notatka
+        </Button>
+        <Button size="sm" variant="outline" onClick={addImage} className="font-mono uppercase text-xs">
+          <ImageIcon className="h-3.5 w-3.5 mr-1" />Obraz
+        </Button>
+
+        {/* Background */}
+        <button onClick={() => setShowBg(v => !v)} title="Ustawienia tła"
+          className={cn("h-8 w-8 grid place-items-center rounded-full border transition",
+            showBg ? "border-[hsl(var(--rune)/0.5)] bg-[hsl(var(--rune)/0.12)] text-[hsl(var(--rune))]" : "border-border text-muted-foreground hover:text-foreground")}>
+          <Palette className="h-3.5 w-3.5" />
+        </button>
+
+        {/* Clear */}
+        <Button size="sm" variant="destructive" onClick={() => {
+          if (confirm("Wyczyścić całą tablicę?")) { pushUndo(board); onChange({ ...board, notes: [], strokes: [] }); }
+        }} className="font-mono uppercase text-xs">
+          <Trash2 className="h-3.5 w-3.5 mr-1" />Wyczyść
+        </Button>
+      </div>
+
+      {/* Background panel */}
+      {showBg && (
+        <div className="vault-panel p-4 flex flex-wrap items-center gap-4 animate-fade-in">
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Kolor tła:</span>
+            <input type="color" value={bgColor} onChange={e => applyBg({ bgColor: e.target.value })}
+              className="h-7 w-7 rounded border border-border cursor-pointer" />
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Wzór:</span>
+            {(["none", "grid", "lines", "dots"] as BgPattern[]).map(p => (
+              <button key={p} onClick={() => applyBg({ bgPattern: p })}
+                className={cn("font-mono text-[10px] uppercase tracking-wider px-2.5 py-1 rounded border transition",
+                  bgPat === p ? "border-[hsl(var(--rune)/0.6)] bg-[hsl(var(--rune)/0.12)] text-[hsl(var(--rune))]" : "border-border text-muted-foreground hover:text-foreground")}>
+                {p === "none" ? "Brak" : p === "grid" ? "Kratka" : p === "lines" ? "Linie" : "Kropki"}
+              </button>
+            ))}
+          </div>
+          {bgPat !== "none" && (
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Kolor wzoru:</span>
+              <input type="color"
+                value={bgPatColor.startsWith("rgba") || bgPatColor.startsWith("rgb") ? "#888888" : bgPatColor}
+                onChange={e => applyBg({ bgPatternColor: e.target.value + "55" })}
+                className="h-7 w-7 rounded border border-border cursor-pointer" />
+            </div>
+          )}
         </div>
       )}
 
+      {/* Canvas */}
       <div
         ref={wrapRef}
         className="vault-panel relative w-full h-[65vh] overflow-hidden select-none"
-        style={{
-          backgroundImage:
-            "linear-gradient(hsl(var(--border)/0.3) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--border)/0.3) 1px, transparent 1px)",
-          backgroundSize: "32px 32px",
-          cursor: tool === "draw" ? "crosshair" : tool === "erase" ? "cell" : "default",
-        }}
+        style={{ ...bgStyle(bgColor, bgPat, bgPatColor, vp), cursor }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -225,36 +597,39 @@ export const WhiteboardCanvas = ({ board, onChange, title = "Tablica", hideHeade
       >
         <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none" />
 
-        {board.notes.map((n) => (
+        {/* Notes */}
+        {board.notes.map(n => (
           <article
             key={n.id}
             className="absolute group shadow-pixel"
             style={{
-              left: n.x,
-              top: n.y,
-              width: n.w,
-              minHeight: n.h,
+              left: n.x * vp.scale + vp.x,
+              top: n.y * vp.scale + vp.y,
+              width: n.w * vp.scale,
+              minHeight: n.h * vp.scale,
               transform: `rotate(${n.rotate}deg)`,
               background: n.color,
               color: n.imageUrl ? "white" : "#1a1714",
               cursor: tool === "pan" ? "grab" : "default",
               zIndex: 10,
+              fontSize: Math.max(10, 14 * vp.scale) + "px",
             }}
-            onPointerDown={(e) => noteDown(e, n)}
+            onPointerDown={e => noteDown(e, n)}
           >
             {n.imageUrl && (
-              <img src={n.imageUrl} alt="" className="w-full h-40 object-cover" loading="lazy" />
+              <img src={n.imageUrl} alt="" className="w-full object-cover"
+                style={{ height: Math.max(40, 150 * vp.scale) }} loading="lazy" />
             )}
             <textarea
               value={n.text}
-              onChange={(e) => updateNote(n.id, { text: e.target.value })}
-              className="w-full bg-transparent border-0 focus:outline-none p-2 resize-none font-handwritten text-base"
-              style={{ minHeight: 80 }}
+              onChange={e => updateNote(n.id, { text: e.target.value })}
+              className="w-full bg-transparent border-0 focus:outline-none p-2 resize-none font-handwritten"
+              style={{ minHeight: Math.max(40, 80 * vp.scale), fontSize: "inherit" }}
               placeholder="Notatka…"
-              onPointerDown={(e) => e.stopPropagation()}
+              onPointerDown={e => e.stopPropagation()}
             />
             <button
-              onClick={(e) => { e.stopPropagation(); removeNote(n.id); }}
+              onClick={e => { e.stopPropagation(); removeNote(n.id); }}
               className="absolute -top-2 -right-2 h-6 w-6 rounded-full bg-[hsl(var(--background))] border border-[hsl(var(--border))] grid place-items-center opacity-0 group-hover:opacity-100 transition"
               aria-label="Usuń notatkę"
             >
@@ -263,77 +638,23 @@ export const WhiteboardCanvas = ({ board, onChange, title = "Tablica", hideHeade
           </article>
         ))}
 
+        {/* Empty hint */}
         {board.notes.length === 0 && board.strokes.length === 0 && (
           <div className="absolute inset-0 grid place-items-center pointer-events-none">
-            <p className="font-mono text-xs uppercase tracking-[0.4em] text-muted-foreground opacity-60">
-              Pusta tablica — dodaj notatkę, narysuj lub wklej obraz
+            <p className="font-mono text-xs uppercase tracking-[0.3em] text-muted-foreground opacity-40">
+              Pusta tablica · scroll = zoom · przeciągnij = przesuń
             </p>
           </div>
         )}
       </div>
 
-      <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
-        <Save className="h-3 w-3" /> Autozapis · {board.notes.length} notatek · {board.strokes.length} szkiców
+      {/* Status */}
+      <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground flex items-center gap-1.5 flex-wrap">
+        <Save className="h-3 w-3" />
+        Autozapis · {board.notes.length} notatek · {board.strokes.length} szkiców
+        {undoStack.length > 0 && <span className="opacity-50">· undo: {undoStack.length}</span>}
+        <span className="opacity-40">· {Math.round(vp.scale * 100)}% zoom</span>
       </p>
     </section>
   );
 };
-
-function ToolBar({
-  tool, setTool, color, setColor, size, setSize,
-  onAddNote, onAddImage, onClear,
-}: {
-  tool: Tool; setTool: (t: Tool) => void;
-  color: string; setColor: (c: string) => void;
-  size: number; setSize: (s: number) => void;
-  onAddNote: () => void; onAddImage: () => void; onClear: () => void;
-}) {
-  return (
-    <>
-      <div className="vault-panel rounded-full p-1 flex">
-        {([
-          { id: "pan", icon: Hand, label: "Przesuwaj" },
-          { id: "draw", icon: Pencil, label: "Rysuj" },
-          { id: "erase", icon: Eraser, label: "Wymaż" },
-        ] as { id: Tool; icon: typeof Hand; label: string }[]).map(({ id, icon: Icon, label }) => (
-          <button
-            key={id}
-            onClick={() => setTool(id)}
-            title={label}
-            aria-pressed={tool === id}
-            className={cn(
-              "h-8 w-8 grid place-items-center rounded-full transition",
-              tool === id ? "bg-[hsl(var(--rune))] text-[hsl(var(--primary-foreground))]" : "text-muted-foreground hover:text-[hsl(var(--rune))]",
-            )}
-          >
-            <Icon className="h-4 w-4" />
-          </button>
-        ))}
-      </div>
-      {tool === "draw" && (
-        <div className="flex items-center gap-1">
-          <input type="color" value={color} onChange={(e) => setColor(e.target.value)} className="h-8 w-8 rounded border border-border bg-transparent cursor-pointer" title="Kolor" />
-          <Input type="number" min={1} max={20} value={size} onChange={(e) => setSize(+e.target.value || 1)} className="w-14 font-mono text-xs" title="Grubość" />
-        </div>
-      )}
-      <Button size="sm" variant="outline" onClick={onAddNote} className="font-mono uppercase text-xs">
-        <Plus className="h-3.5 w-3.5 mr-1" />Notatka
-      </Button>
-      <Button size="sm" variant="outline" onClick={onAddImage} className="font-mono uppercase text-xs">
-        <ImageIcon className="h-3.5 w-3.5 mr-1" />Obraz
-      </Button>
-      <Button size="sm" variant="destructive" onClick={onClear} className="font-mono uppercase text-xs">
-        <Trash2 className="h-3.5 w-3.5 mr-1" />Wyczyść
-      </Button>
-    </>
-  );
-}
-
-function pointNearStroke(s: BoardStroke, x: number, y: number, r: number): boolean {
-  for (let i = 0; i < s.points.length; i += 2) {
-    const dx = s.points[i] - x;
-    const dy = s.points[i + 1] - y;
-    if (dx * dx + dy * dy <= r * r) return true;
-  }
-  return false;
-}
