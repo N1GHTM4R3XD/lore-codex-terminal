@@ -13,7 +13,7 @@ export const WorldCard = ({ world, characters, onDelete }: Props) => {
 
   return (
     <div className="vault-panel group relative overflow-hidden hover:border-[hsl(var(--rune)/0.5)] transition-colors">
-      <Link to="/tablica-swiata?tab=swiaty" className="block focus:outline-none" aria-label={`Otwórz świat ${world.name}`}>
+      <Link to={`/world/${world.id}`} className="block focus:outline-none" aria-label={`Otwórz świat ${world.name}`}>
         {/* Image / placeholder */}
         <div className="aspect-[5/3] overflow-hidden relative bg-muted">
           {world.imageUrl ? (
