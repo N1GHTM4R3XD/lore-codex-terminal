@@ -10,7 +10,13 @@ export type CardAnimation =
   | "sparkle"
   | "pixel-twinkle"
   | "tilt"
-  | "breathe";
+  | "breathe"
+  | "leaves"
+  | "rain-card"
+  | "fog"
+  | "bubbles"
+  | "waves"
+  | "stars-card";
 
 export type FrameStyle = "pixel" | "ornament" | "neon" | "parchment" | "none";
 
@@ -84,6 +90,28 @@ export interface CustomPalette {
   foreground: string;
 }
 
+export type ConnectionNodeType = "character" | "world";
+
+export interface Connection {
+  id: string;
+  fromId: string;
+  fromType: ConnectionNodeType;
+  toId: string;
+  toType: ConnectionNodeType;
+  label: string;
+  description?: string;
+  color?: string;
+}
+
+export interface World {
+  id: string;
+  name: string;
+  description: string;
+  characterIds: string[];
+  imageUrl?: string;
+  palette?: Palette;
+}
+
 /**
  * A single character card. Holds all narrative + visual customization.
  */
@@ -115,6 +143,8 @@ export type VaultState = Character;
 export interface VaultDB {
   characters: Character[];
   worldBoard: Whiteboard;
+  worlds: World[];
+  connections: Connection[];
   settings: {
     effect: Effect;
     customPalettes: CustomPalette[];
@@ -223,6 +253,8 @@ Każdego ranka warzy napar z **majowej rosy** i czyta listy od [[Wędrownego Lis
 export const DEFAULT_DB: VaultDB = {
   characters: [sampleA, sampleB],
   worldBoard: emptyBoard(),
+  worlds: [],
+  connections: [],
   settings: { effect: "embers", customPalettes: [] },
 };
 
@@ -257,6 +289,8 @@ export function migrateDB(db: any): VaultDB {
   return {
     characters,
     worldBoard: db.worldBoard ?? emptyBoard(),
+    worlds: db.worlds ?? [],
+    connections: db.connections ?? [],
     settings: {
       effect: db.settings?.effect ?? "embers",
       customPalettes: db.settings?.customPalettes ?? [],

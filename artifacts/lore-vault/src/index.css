@@ -331,6 +331,12 @@
   [data-card-anim="pixel-twinkle"] { animation: card-pixel-twinkle 2.4s ease-in-out infinite; }
   [data-card-anim="tilt"]          { animation: card-tilt 6s ease-in-out infinite; transform-origin: center; }
   [data-card-anim="breathe"]       { animation: card-breathe 4s ease-in-out infinite; }
+  [data-card-anim="leaves"]        { animation: card-leaves 7s ease-in-out infinite; transform-origin: top center; }
+  [data-card-anim="rain-card"]     { animation: card-rain-anim 2.5s ease-in-out infinite; }
+  [data-card-anim="fog"]           { animation: card-fog 6s ease-in-out infinite; }
+  [data-card-anim="bubbles"]       { animation: card-bubbles 3.5s ease-in-out infinite; }
+  [data-card-anim="waves"]         { animation: card-waves 5s ease-in-out infinite; }
+  [data-card-anim="stars-card"]    { animation: card-stars 4.5s ease-in-out infinite; }
 }
 
 @keyframes card-float          { 0%,100%{ transform:translateY(0)} 50%{ transform:translateY(-6px)} }
@@ -340,6 +346,44 @@
 @keyframes card-pixel-twinkle   { 0%,100%{ filter: drop-shadow(0 0 0 hsl(var(--rune)/0))} 50%{ filter: drop-shadow(0 0 8px hsl(var(--rune)/0.9))} }
 @keyframes card-tilt            { 0%,100%{ transform: rotate(-0.6deg)} 50%{ transform: rotate(0.6deg)} }
 @keyframes card-breathe         { 0%,100%{ transform: scale(1)} 50%{ transform: scale(1.015)} }
+
+/* ===== NEW CARD ANIMATIONS ===== */
+@keyframes card-leaves {
+  0%   { transform: rotate(-1deg) translate(0,0); }
+  20%  { transform: rotate(1.2deg) translate(3px,-4px); }
+  40%  { transform: rotate(-0.6deg) translate(-2px,-7px); }
+  60%  { transform: rotate(1.5deg) translate(4px,-5px); }
+  80%  { transform: rotate(-0.8deg) translate(-1px,-2px); }
+  100% { transform: rotate(-1deg) translate(0,0); }
+}
+@keyframes card-rain-anim {
+  0%,100% { filter: brightness(1) drop-shadow(0 -2px 4px hsla(200,80%,70%,0.05)); }
+  50%     { filter: brightness(1.04) drop-shadow(0 5px 10px hsla(200,80%,70%,0.45)); }
+}
+@keyframes card-fog {
+  0%,100% { filter: blur(0px) brightness(1); transform: scale(1); }
+  40%     { filter: blur(0.8px) brightness(1.06); transform: scale(1.008); }
+  70%     { filter: blur(1.4px) brightness(1.12); transform: scale(1.012); }
+}
+@keyframes card-bubbles {
+  0%,100% { transform: scale(1) translateY(0); }
+  20%     { transform: scale(1.018) translateY(-5px); }
+  45%     { transform: scale(0.995) translateY(-2px); }
+  65%     { transform: scale(1.022) translateY(-8px); }
+  85%     { transform: scale(1.005) translateY(-3px); }
+}
+@keyframes card-waves {
+  0%,100% { transform: translateY(0) skewX(0deg);   filter: drop-shadow(0 4px 8px hsla(195,80%,60%,0.15)); }
+  25%     { transform: translateY(-4px) skewX(0.4deg); filter: drop-shadow(0 10px 18px hsla(195,80%,60%,0.35)); }
+  50%     { transform: translateY(-2px) skewX(0deg);   filter: drop-shadow(0 7px 14px hsla(195,80%,60%,0.25)); }
+  75%     { transform: translateY(-5px) skewX(-0.4deg);filter: drop-shadow(0 12px 22px hsla(195,80%,60%,0.3)); }
+}
+@keyframes card-stars {
+  0%,100% { filter: brightness(1) drop-shadow(0 0 0 transparent); }
+  25%     { filter: brightness(1.12) drop-shadow(0 0 14px hsla(45,90%,70%,0.85)); }
+  55%     { filter: brightness(1.06) drop-shadow(0 0 9px hsla(280,80%,70%,0.65)); }
+  80%     { filter: brightness(1.14) drop-shadow(0 0 18px hsla(200,80%,75%,0.75)); }
+}
 
 @layer utilities {
   .text-balance { text-wrap: balance; }

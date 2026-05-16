@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useLocalStorage } from "./useLocalStorage";
-import { Character, DEFAULT_DB, VaultDB, newCharacter, migrateDB, Whiteboard, CustomPalette } from "@/lib/vault-types";
+import { Character, DEFAULT_DB, VaultDB, newCharacter, migrateDB, Whiteboard, CustomPalette, World, Connection } from "@/lib/vault-types";
 import { applyCustomPaletteStyles } from "@/lib/paletteUtils";
 
 export function useVaultDB() {
@@ -44,6 +44,31 @@ export function useVaultDB() {
       },
     });
 
+  const addWorld = (w: Omit<World, "id">): World => {
+    const created: World = { ...w, id: `world_${Date.now().toString(36)}` };
+    setDb({ ...db, worlds: [...(db.worlds ?? []), created] });
+    return created;
+  };
+
+  const updateWorld = (id: string, patch: Partial<World>) =>
+    setDb({ ...db, worlds: (db.worlds ?? []).map((w) => (w.id === id ? { ...w, ...patch } : w)) });
+
+  const deleteWorld = (id: string) =>
+    setDb({
+      ...db,
+      worlds: (db.worlds ?? []).filter((w) => w.id !== id),
+      connections: (db.connections ?? []).filter((c) => c.fromId !== id && c.toId !== id),
+    });
+
+  const addConnection = (c: Omit<Connection, "id">): Connection => {
+    const created: Connection = { ...c, id: `conn_${Date.now().toString(36)}` };
+    setDb({ ...db, connections: [...(db.connections ?? []), created] });
+    return created;
+  };
+
+  const deleteConnection = (id: string) =>
+    setDb({ ...db, connections: (db.connections ?? []).filter((c) => c.id !== id) });
+
   return {
     db,
     updateCharacter,
@@ -53,6 +78,11 @@ export function useVaultDB() {
     setWorldBoard,
     addCustomPalette,
     removeCustomPalette,
+    addWorld,
+    updateWorld,
+    deleteWorld,
+    addConnection,
+    deleteConnection,
     setDb,
   };
 }

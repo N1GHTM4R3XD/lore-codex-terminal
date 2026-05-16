@@ -32,11 +32,21 @@ const FRAMES: { id: FrameStyle; label: string }[] = [
   { id: "neon", label: "Neon" },   { id: "parchment", label: "Pergamin" }, { id: "none", label: "Brak" },
 ];
 
-const ANIMS: { id: CardAnimation; label: string }[] = [
-  { id: "none", label: "Brak" }, { id: "float", label: "Unoszenie" },
-  { id: "glow", label: "Poświata" }, { id: "shake", label: "Drganie" },
-  { id: "sparkle", label: "Iskry" }, { id: "pixel-twinkle", label: "Pixel migot" },
-  { id: "tilt", label: "Przechył" }, { id: "breathe", label: "Oddech" },
+const ANIMS: { id: CardAnimation; label: string; emoji: string }[] = [
+  { id: "none",         label: "Brak",         emoji: "—" },
+  { id: "float",        label: "Unoszenie",    emoji: "🌫" },
+  { id: "glow",         label: "Poświata",     emoji: "✨" },
+  { id: "shake",        label: "Drganie",      emoji: "⚡" },
+  { id: "sparkle",      label: "Iskry",        emoji: "💥" },
+  { id: "pixel-twinkle",label: "Pixel migot",  emoji: "🔮" },
+  { id: "tilt",         label: "Przechył",     emoji: "↔" },
+  { id: "breathe",      label: "Oddech",       emoji: "🌊" },
+  { id: "leaves",       label: "Liście",       emoji: "🍂" },
+  { id: "rain-card",    label: "Deszcz",       emoji: "🌧" },
+  { id: "fog",          label: "Mgła",         emoji: "🌫️" },
+  { id: "bubbles",      label: "Bąbelki",      emoji: "🫧" },
+  { id: "waves",        label: "Fale",         emoji: "🌊" },
+  { id: "stars-card",   label: "Gwiazdy",      emoji: "⭐" },
 ];
 
 const FONT_CATEGORIES: { id: string; label: string }[] = [
@@ -259,8 +269,8 @@ export const CardCustomizer = ({ character, update, customPalettes, addCustomPal
             <div className="flex flex-wrap gap-2 mt-2">
               {ANIMS.map((a) => (
                 <Button key={a.id} variant={character.animation === a.id ? "default" : "outline"} size="sm"
-                  onClick={() => update({ animation: a.id })} className="font-mono uppercase text-xs">
-                  {a.label}
+                  onClick={() => update({ animation: a.id })} className="font-mono uppercase text-xs gap-1">
+                  <span aria-hidden>{a.emoji}</span>{a.label}
                 </Button>
               ))}
             </div>

@@ -29,6 +29,20 @@ export function renderLore(
   });
 }
 
+const ENTITY_TYPE_COLORS: Record<string, string> = {
+  "Postać":   "hsl(28,50%,65%)",
+  "Miejsce":  "hsl(195,85%,60%)",
+  "Frakcja":  "hsl(280,80%,65%)",
+  "Artefakt": "hsl(45,90%,65%)",
+  "Bóstwo":   "hsl(0,75%,60%)",
+  "Rasa":     "hsl(145,70%,50%)",
+  "Zdarzenie":"hsl(20,80%,60%)",
+};
+
+function entityColor(type: string) {
+  return ENTITY_TYPE_COLORS[type] ?? "hsl(35,75%,70%)";
+}
+
 function EntityToken({
   label,
   entity,
@@ -53,17 +67,40 @@ function EntityToken({
     </span>
   );
   if (!entity) return trigger;
+
+  const color = entityColor(entity.type);
+
   return (
-    <HoverCard openDelay={120} closeDelay={80}>
+    <HoverCard openDelay={100} closeDelay={80}>
       <HoverCardTrigger asChild>{trigger}</HoverCardTrigger>
-      <HoverCardContent side="top" className="vault-panel w-72 p-4">
-        <p className="font-mono text-[10px] uppercase tracking-widest text-[hsl(var(--rune))]">
-          {entity.type}
-        </p>
-        <h4 className="font-display text-lg leading-tight mt-1">{entity.name}</h4>
-        <p className="text-sm italic text-[hsl(var(--ink))]/85 mt-2 leading-relaxed">
-          {entity.description || "Brak opisu — uzupełnij w Encyklopedii."}
-        </p>
+      <HoverCardContent side="top" align="start" className="vault-panel w-76 p-0 overflow-hidden border-[hsl(var(--border))]" style={{ boxShadow: `0 0 0 1px ${color}40, var(--shadow-vault)` }}>
+        <div className="flex items-center gap-2 px-4 py-2 border-b border-border" style={{ borderBottomColor: `${color}40` }}>
+          <span className="inline-flex h-2 w-2 rounded-full flex-shrink-0" style={{ background: color, boxShadow: `0 0 6px ${color}` }} />
+          <p className="font-mono text-[9px] uppercase tracking-[0.18em]" style={{ color }}>
+            {entity.type}
+          </p>
+        </div>
+        <div className="px-4 pt-3 pb-1">
+          <h4 className="font-display text-[1.1rem] leading-tight" style={{ color }}>
+            {entity.name}
+          </h4>
+        </div>
+        <div className="px-4 pb-3">
+          <p className="text-sm italic text-muted-foreground leading-relaxed">
+            {entity.description || "Brak opisu — uzupełnij w Encyklopedii."}
+          </p>
+        </div>
+        {onClick && (
+          <div className="px-4 pb-3 pt-0">
+            <button
+              onClick={onClick}
+              className="text-[9px] font-mono uppercase tracking-[0.18em] opacity-60 hover:opacity-100 transition-opacity"
+              style={{ color }}
+            >
+              → otwórz w encyklopedii
+            </button>
+          </div>
+        )}
       </HoverCardContent>
     </HoverCard>
   );
