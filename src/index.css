@@ -3,76 +3,83 @@
 @tailwind utilities;
 
 /* =========================================================
-   Lore Vault — Dark Fantasy / Sci-Fi Design System
+   Lore Vault — Dark Fantasy Pixel Design System
    All colors MUST be HSL.
    ========================================================= */
 
 @layer base {
   :root {
-    /* default palette = abyss */
-    --background: 230 30% 5%;
-    --foreground: 40 30% 88%;
+    /* DEFAULT = pixel-dark */
+    --background: 30 10% 6%;
+    --foreground: 38 30% 88%;
 
-    --card: 230 28% 8%;
-    --card-foreground: 40 30% 88%;
+    --card: 28 14% 10%;
+    --card-foreground: 38 30% 88%;
 
-    --popover: 230 32% 6%;
-    --popover-foreground: 40 30% 90%;
+    --popover: 28 16% 8%;
+    --popover-foreground: 38 30% 90%;
 
-    --primary: 195 85% 60%;
-    --primary-foreground: 230 40% 6%;
+    --primary: 28 50% 65%;
+    --primary-foreground: 30 15% 8%;
 
-    --secondary: 230 25% 14%;
-    --secondary-foreground: 40 30% 88%;
+    --secondary: 30 12% 14%;
+    --secondary-foreground: 38 30% 88%;
 
-    --muted: 230 20% 12%;
-    --muted-foreground: 230 12% 60%;
+    --muted: 30 10% 12%;
+    --muted-foreground: 30 10% 60%;
 
-    --accent: 270 70% 65%;
-    --accent-foreground: 230 40% 6%;
+    --accent: 18 55% 40%;
+    --accent-foreground: 38 30% 92%;
 
-    --destructive: 0 70% 50%;
-    --destructive-foreground: 40 30% 95%;
+    --destructive: 0 65% 50%;
+    --destructive-foreground: 38 30% 95%;
 
-    --border: 230 30% 18%;
-    --input: 230 30% 14%;
-    --ring: 195 85% 60%;
+    --border: 30 18% 22%;
+    --input: 30 18% 14%;
+    --ring: 28 50% 65%;
 
-    --radius: 0.25rem;
+    --radius: 0.125rem;
 
-    /* Lore Vault tokens */
-    --rune: 40 80% 70%;            /* parchment gold */
-    --rune-glow: 40 90% 60%;
-    --ink: 40 35% 85%;
-    --vault-edge: 230 40% 22%;
-    --vault-deep: 230 50% 3%;
+    --rune: 35 75% 70%;
+    --rune-glow: 35 90% 60%;
+    --ink: 38 35% 85%;
+    --vault-edge: 30 25% 22%;
+    --vault-deep: 30 30% 3%;
 
-    --gradient-hero: radial-gradient(120% 80% at 50% 0%, hsl(var(--primary) / 0.35) 0%, transparent 60%),
+    --gradient-hero: radial-gradient(120% 80% at 50% 0%, hsl(var(--primary) / 0.30) 0%, transparent 60%),
                      radial-gradient(80% 60% at 50% 100%, hsl(var(--accent) / 0.25) 0%, transparent 70%),
                      linear-gradient(180deg, hsl(var(--vault-deep)) 0%, hsl(var(--background)) 100%);
-    --gradient-panel: linear-gradient(180deg, hsl(var(--card) / 0.85) 0%, hsl(var(--background) / 0.9) 100%);
+    --gradient-panel: linear-gradient(180deg, hsl(var(--card) / 0.92) 0%, hsl(var(--background) / 0.94) 100%);
     --gradient-rune: linear-gradient(135deg, hsl(var(--rune)) 0%, hsl(var(--primary)) 100%);
 
     --shadow-vault: 0 30px 80px -20px hsl(var(--vault-deep)),
                     0 0 0 1px hsl(var(--border));
     --shadow-glow: 0 0 40px hsl(var(--primary) / 0.4);
     --shadow-rune: 0 0 24px hsl(var(--rune-glow) / 0.5);
+    --shadow-pixel: 4px 4px 0 0 hsl(var(--vault-deep)), 0 0 0 1px hsl(var(--rune)/0.6);
 
     --grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.5 0'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.35'/></svg>");
 
-    --transition-vault: cubic-bezier(0.65, 0.05, 0.36, 1);
-
-    --sidebar-background: 230 30% 5%;
-    --sidebar-foreground: 40 30% 88%;
-    --sidebar-primary: 195 85% 60%;
-    --sidebar-primary-foreground: 230 40% 6%;
-    --sidebar-accent: 230 25% 14%;
-    --sidebar-accent-foreground: 40 30% 88%;
-    --sidebar-border: 230 30% 18%;
-    --sidebar-ring: 195 85% 60%;
+    --sidebar-background: 30 10% 6%;
+    --sidebar-foreground: 38 30% 88%;
+    --sidebar-primary: 28 50% 65%;
+    --sidebar-primary-foreground: 30 15% 8%;
+    --sidebar-accent: 30 12% 14%;
+    --sidebar-accent-foreground: 38 30% 88%;
+    --sidebar-border: 30 18% 22%;
+    --sidebar-ring: 28 50% 65%;
   }
 
-  /* ---------- Palettes ---------- */
+  [data-palette="pixel-dark"] {
+    --background: 30 10% 6%;
+    --card: 28 14% 10%;
+    --primary: 28 50% 65%;
+    --accent: 18 55% 40%;
+    --rune: 35 75% 70%;
+    --rune-glow: 35 90% 60%;
+    --ring: 28 50% 65%;
+    --border: 30 18% 22%;
+  }
   [data-palette="abyss"] {
     --background: 230 30% 5%;
     --card: 230 28% 8%;
@@ -81,6 +88,7 @@
     --rune: 195 90% 70%;
     --rune-glow: 195 90% 60%;
     --ring: 195 85% 60%;
+    --border: 230 30% 18%;
   }
   [data-palette="crimson"] {
     --background: 350 35% 5%;
@@ -122,20 +130,38 @@
     --ring: 145 70% 50%;
     --border: 150 25% 18%;
   }
+  [data-palette="cozy-forest"] {
+    --background: 90 18% 10%;
+    --card: 95 16% 14%;
+    --foreground: 60 25% 90%;
+    --primary: 95 28% 55%;
+    --accent: 35 40% 60%;
+    --rune: 75 45% 70%;
+    --rune-glow: 80 60% 60%;
+    --ring: 95 28% 55%;
+    --border: 90 18% 24%;
+    --muted: 90 14% 16%;
+    --muted-foreground: 80 12% 65%;
+  }
+  [data-palette="pastel-dream"] {
+    --background: 280 25% 10%;
+    --card: 280 22% 14%;
+    --foreground: 320 30% 92%;
+    --primary: 330 70% 75%;
+    --accent: 200 60% 75%;
+    --rune: 280 75% 80%;
+    --rune-glow: 320 90% 75%;
+    --ring: 330 70% 75%;
+    --border: 280 25% 25%;
+  }
 }
 
 @layer base {
-  * {
-    @apply border-border;
-  }
-
-  html {
-    scroll-behavior: smooth;
-  }
-
+  * { @apply border-border; }
+  html { scroll-behavior: smooth; }
   body {
     @apply bg-background text-foreground;
-    font-family: 'Cormorant Garamond', 'Iowan Old Style', Georgia, serif;
+    font-family: 'Cormorant Garamond', Georgia, serif;
     font-size: 17px;
     line-height: 1.6;
     background-image: var(--grain), radial-gradient(60% 40% at 50% 0%, hsl(var(--primary) / 0.08), transparent 70%);
@@ -143,32 +169,44 @@
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
   }
-
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Cinzel', 'Trajan Pro', serif;
-    letter-spacing: 0.04em;
+    font-family: 'Pixelify Sans', 'Cinzel', serif;
+    letter-spacing: 0.02em;
     font-weight: 600;
   }
-
-  ::selection {
-    background: hsl(var(--primary) / 0.4);
-    color: hsl(var(--foreground));
-  }
+  ::selection { background: hsl(var(--primary) / 0.4); color: hsl(var(--foreground)); }
 
   ::-webkit-scrollbar { width: 10px; height: 10px; }
   ::-webkit-scrollbar-track { background: hsl(var(--background)); }
   ::-webkit-scrollbar-thumb {
     background: linear-gradient(180deg, hsl(var(--border)), hsl(var(--vault-edge)));
-    border-radius: 8px;
+    border-radius: 0;
     border: 2px solid hsl(var(--background));
   }
   ::-webkit-scrollbar-thumb:hover { background: hsl(var(--primary) / 0.5); }
+
+  /* Accessibility focus ring */
+  :focus-visible {
+    outline: 2px solid hsl(var(--rune));
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
 }
 
 @layer components {
-  .font-display { font-family: 'Cinzel', serif; }
-  .font-body    { font-family: 'Cormorant Garamond', serif; }
-  .font-mono    { font-family: 'JetBrains Mono', monospace; }
+  .font-display    { font-family: 'Pixelify Sans', 'Cinzel', serif; }
+  .font-body       { font-family: 'Cormorant Garamond', serif; }
+  .font-mono       { font-family: 'JetBrains Mono', monospace; }
+  .font-pixel      { font-family: 'Press Start 2P', monospace; letter-spacing: 0; }
+  .font-pixel-body { font-family: 'VT323', monospace; font-size: 1.15em; }
+  .font-gothic     { font-family: 'Cinzel', serif; }
+  .font-handwritten{ font-family: 'Caveat', cursive; }
 
   .vault-panel {
     background: var(--gradient-panel);
@@ -199,19 +237,65 @@
                 0 0 30px -10px hsl(var(--primary) / 0.5);
   }
 
-  .corner-frame {
+  /* ===== FRAMES (per character card) ===== */
+  .frame-pixel {
+    border: 2px solid hsl(var(--rune));
+    box-shadow:
+      0 0 0 2px hsl(var(--background)),
+      0 0 0 4px hsl(var(--rune)/0.6),
+      inset 0 0 0 1px hsl(var(--vault-deep)),
+      8px 8px 0 0 hsl(var(--vault-deep));
+    image-rendering: pixelated;
+    border-radius: 0;
+  }
+  .frame-ornament {
+    border: 1px solid hsl(var(--rune)/0.7);
+    border-radius: 18px;
     position: relative;
   }
-  .corner-frame::before,
-  .corner-frame::after {
-    content: '';
-    position: absolute;
-    width: 18px; height: 18px;
+  .frame-ornament::before, .frame-ornament::after {
+    content: ''; position: absolute; width: 26px; height: 26px;
+    border: 2px solid hsl(var(--rune));
+    pointer-events: none;
+  }
+  .frame-ornament::before { top: -6px; left: -6px; border-right: 0; border-bottom: 0; border-top-left-radius: 14px; }
+  .frame-ornament::after  { bottom: -6px; right: -6px; border-left: 0; border-top: 0; border-bottom-right-radius: 14px; }
+  .frame-neon {
+    border: 1px solid hsl(var(--primary));
+    border-radius: 6px;
+    box-shadow:
+      0 0 0 1px hsl(var(--primary)/0.4),
+      0 0 14px hsl(var(--primary)/0.55),
+      inset 0 0 14px hsl(var(--primary)/0.18);
+  }
+  .frame-parchment {
+    border: 1px solid hsl(var(--rune)/0.5);
+    border-radius: 4px;
+    background: linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--background)) 100%);
+    box-shadow: inset 0 0 60px hsl(var(--vault-deep)/0.6), var(--shadow-vault);
+  }
+  .frame-none { border: 1px solid hsl(var(--border)); border-radius: var(--radius); }
+
+  .corner-frame { position: relative; }
+  .corner-frame::before, .corner-frame::after {
+    content: ''; position: absolute; width: 18px; height: 18px;
     border: 1px solid hsl(var(--rune) / 0.7);
     pointer-events: none;
   }
   .corner-frame::before { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
   .corner-frame::after  { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
+
+  /* ===== PIXEL BUTTON ===== */
+  .pixel-btn {
+    @apply font-pixel text-[10px] uppercase px-3 py-2 transition-transform;
+    background: hsl(var(--card));
+    color: hsl(var(--rune));
+    border: 2px solid hsl(var(--rune));
+    box-shadow: 4px 4px 0 0 hsl(var(--vault-deep));
+    border-radius: 0;
+  }
+  .pixel-btn:hover { transform: translate(-1px,-1px); box-shadow: 5px 5px 0 0 hsl(var(--vault-deep)); }
+  .pixel-btn:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 0 hsl(var(--vault-deep)); }
 
   .wiki-link {
     @apply font-display text-[hsl(var(--rune))] cursor-pointer underline decoration-dotted underline-offset-4 transition-all;
@@ -237,14 +321,41 @@
   .lore-prose code {
     @apply font-mono text-sm bg-[hsl(var(--muted))] px-1.5 py-0.5 rounded;
   }
+
+  /* ===== Card font themes (apply on per-card scope) ===== */
+  [data-card-font="pixel"] h1,
+  [data-card-font="pixel"] h2,
+  [data-card-font="pixel"] h3 { font-family: 'Pixelify Sans', sans-serif; }
+  [data-card-font="pixel"] .card-display { font-family: 'Press Start 2P', monospace; }
+  [data-card-font="gothic"] h1,
+  [data-card-font="gothic"] h2,
+  [data-card-font="gothic"] h3,
+  [data-card-font="gothic"] .card-display { font-family: 'Cinzel', serif; }
+  [data-card-font="serif"] h1,
+  [data-card-font="serif"] h2,
+  [data-card-font="serif"] h3,
+  [data-card-font="serif"] .card-display { font-family: 'Cormorant Garamond', serif; font-weight: 600; }
+  [data-card-font="handwritten"] h1,
+  [data-card-font="handwritten"] h2,
+  [data-card-font="handwritten"] h3,
+  [data-card-font="handwritten"] .card-display { font-family: 'Caveat', cursive; font-weight: 700; }
+
+  /* Animations applied via data-attr */
+  [data-card-anim="float"]   { animation: card-float 5s ease-in-out infinite; }
+  [data-card-anim="glow"]    { animation: card-glow 3s ease-in-out infinite; }
+  [data-card-anim="shake"]   { animation: card-shake 2.2s ease-in-out infinite; }
+  [data-card-anim="sparkle"] { animation: sparkle 2.6s ease-in-out infinite; }
+  [data-card-anim="pixel-twinkle"] { animation: pixel-twinkle 2.4s ease-in-out infinite; }
 }
 
 @layer utilities {
   .text-balance { text-wrap: balance; }
   .bg-grain { background-image: var(--grain); }
   .shadow-vault { box-shadow: var(--shadow-vault); }
-  .shadow-glow { box-shadow: var(--shadow-glow); }
-  .shadow-rune { box-shadow: var(--shadow-rune); }
+  .shadow-glow  { box-shadow: var(--shadow-glow); }
+  .shadow-rune  { box-shadow: var(--shadow-rune); }
+  .shadow-pixel { box-shadow: var(--shadow-pixel); }
   .bg-gradient-hero { background: var(--gradient-hero); }
   .bg-gradient-rune { background: var(--gradient-rune); }
+  .pixelated { image-rendering: pixelated; }
 }
