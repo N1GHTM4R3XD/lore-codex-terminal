@@ -298,7 +298,8 @@
   .pixel-btn:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 0 hsl(var(--vault-deep)); }
 
   .wiki-link {
-    @apply font-display text-[hsl(var(--rune))] cursor-pointer underline decoration-dotted underline-offset-4 transition-all;
+    @apply text-[hsl(var(--rune))] cursor-pointer underline decoration-dotted underline-offset-4 transition-all;
+    font-family: var(--font-display, 'Pixelify Sans', serif);
   }
   .wiki-link:hover {
     color: hsl(var(--rune-glow));
@@ -306,47 +307,39 @@
   }
 
   .entity-highlight {
-    @apply font-display text-[hsl(var(--primary))] cursor-help border-b border-dotted border-[hsl(var(--primary)/0.5)];
+    @apply text-[hsl(var(--primary))] cursor-help border-b border-dotted border-[hsl(var(--primary)/0.5)] transition-colors;
+    font-family: var(--font-display, 'Pixelify Sans', serif);
   }
+  .entity-highlight:hover { color: hsl(var(--rune-glow)); }
 
-  .lore-prose p { margin-bottom: 1em; }
-  .lore-prose strong { color: hsl(var(--rune)); font-weight: 600; }
-  .lore-prose em { color: hsl(var(--accent)); }
-  .lore-prose h1, .lore-prose h2, .lore-prose h3 {
-    @apply font-display rune-text mt-6 mb-3;
+  /* Per-card font scope — overrides global font-display/body/mono when --font-* vars are set. */
+  .lv-card-scope :where(.font-display, h1, h2, h3, h4, h5, h6, .card-display, .rune-text) {
+    font-family: var(--font-display, 'Pixelify Sans', serif);
   }
-  .lore-prose blockquote {
-    @apply border-l-2 border-[hsl(var(--rune))] pl-4 italic text-[hsl(var(--muted-foreground))] my-4;
+  .lv-card-scope :where(.font-body, .lore-prose) {
+    font-family: var(--font-body, 'Cormorant Garamond', serif);
   }
-  .lore-prose code {
-    @apply font-mono text-sm bg-[hsl(var(--muted))] px-1.5 py-0.5 rounded;
+  .lv-card-scope :where(.font-mono) {
+    font-family: var(--font-mono, 'JetBrains Mono', monospace);
   }
-
-  /* ===== Card font themes (apply on per-card scope) ===== */
-  [data-card-font="pixel"] h1,
-  [data-card-font="pixel"] h2,
-  [data-card-font="pixel"] h3 { font-family: 'Pixelify Sans', sans-serif; }
-  [data-card-font="pixel"] .card-display { font-family: 'Press Start 2P', monospace; }
-  [data-card-font="gothic"] h1,
-  [data-card-font="gothic"] h2,
-  [data-card-font="gothic"] h3,
-  [data-card-font="gothic"] .card-display { font-family: 'Cinzel', serif; }
-  [data-card-font="serif"] h1,
-  [data-card-font="serif"] h2,
-  [data-card-font="serif"] h3,
-  [data-card-font="serif"] .card-display { font-family: 'Cormorant Garamond', serif; font-weight: 600; }
-  [data-card-font="handwritten"] h1,
-  [data-card-font="handwritten"] h2,
-  [data-card-font="handwritten"] h3,
-  [data-card-font="handwritten"] .card-display { font-family: 'Caveat', cursive; font-weight: 700; }
 
   /* Animations applied via data-attr */
-  [data-card-anim="float"]   { animation: card-float 5s ease-in-out infinite; }
-  [data-card-anim="glow"]    { animation: card-glow 3s ease-in-out infinite; }
-  [data-card-anim="shake"]   { animation: card-shake 2.2s ease-in-out infinite; }
-  [data-card-anim="sparkle"] { animation: sparkle 2.6s ease-in-out infinite; }
-  [data-card-anim="pixel-twinkle"] { animation: pixel-twinkle 2.4s ease-in-out infinite; }
+  [data-card-anim="float"]         { animation: card-float 5s ease-in-out infinite; }
+  [data-card-anim="glow"]          { animation: card-glow 3s ease-in-out infinite; }
+  [data-card-anim="shake"]         { animation: card-shake 2.2s ease-in-out infinite; }
+  [data-card-anim="sparkle"]       { animation: card-sparkle 2.6s ease-in-out infinite; }
+  [data-card-anim="pixel-twinkle"] { animation: card-pixel-twinkle 2.4s ease-in-out infinite; }
+  [data-card-anim="tilt"]          { animation: card-tilt 6s ease-in-out infinite; transform-origin: center; }
+  [data-card-anim="breathe"]       { animation: card-breathe 4s ease-in-out infinite; }
 }
+
+@keyframes card-float          { 0%,100%{ transform:translateY(0)} 50%{ transform:translateY(-6px)} }
+@keyframes card-glow            { 0%,100%{ filter: drop-shadow(0 0 0 hsl(var(--rune)/0))} 50%{ filter: drop-shadow(0 0 14px hsl(var(--rune)/0.7))} }
+@keyframes card-shake           { 0%,100%{ transform:translateX(0)} 25%{ transform:translateX(-2px)} 75%{ transform:translateX(2px)} }
+@keyframes card-sparkle         { 0%,100%{ filter: brightness(1)} 50%{ filter: brightness(1.15) saturate(1.15)} }
+@keyframes card-pixel-twinkle   { 0%,100%{ filter: drop-shadow(0 0 0 hsl(var(--rune)/0))} 50%{ filter: drop-shadow(0 0 8px hsl(var(--rune)/0.9))} }
+@keyframes card-tilt            { 0%,100%{ transform: rotate(-0.6deg)} 50%{ transform: rotate(0.6deg)} }
+@keyframes card-breathe         { 0%,100%{ transform: scale(1)} 50%{ transform: scale(1.015)} }
 
 @layer utilities {
   .text-balance { text-wrap: balance; }
