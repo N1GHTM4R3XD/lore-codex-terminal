@@ -1,17 +1,16 @@
-import { Plus } from "lucide-react";
+import { Plus, LayoutDashboard } from "lucide-react";
 import { useVaultDB } from "@/hooks/useVaultDB";
 import { ParticleCanvas } from "@/components/vault/ParticleCanvas";
 import { CharacterCard } from "@/components/vault/CharacterCard";
 import { SettingsModal } from "@/components/vault/SettingsModal";
 import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 
 const Index = () => {
   const { db, addCharacter, deleteCharacter, setDb } = useVaultDB();
   const navigate = useNavigate();
 
-  // Restore global pixel-dark on the dashboard regardless of last visited card.
   useEffect(() => {
     document.documentElement.dataset.palette = "pixel-dark";
   }, []);
@@ -25,7 +24,6 @@ const Index = () => {
       </div>
 
       <main className="relative z-10">
-        {/* Header */}
         <header className="container pt-16 pb-10">
           <div className="flex items-center gap-2 text-xs uppercase tracking-[0.4em] text-[hsl(var(--rune))] font-pixel animate-fade-in">
             <span className="h-px w-10 bg-[hsl(var(--rune))]" />
@@ -37,7 +35,7 @@ const Index = () => {
           </h1>
           <p className="mt-3 max-w-2xl text-lg italic text-muted-foreground">
             Mroczny kodeks twoich bohaterów. Każda karta to własny świat — paleta, ramka,
-            animacje i muzyka w tle.
+            animacje, fonty i muzyka.
           </p>
 
           <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -51,6 +49,11 @@ const Index = () => {
             >
               <Plus className="h-3 w-3 mr-1.5" /> Nowa karta
             </Button>
+            <Button asChild variant="outline" size="sm" className="font-mono uppercase text-xs">
+              <Link to="/tablica-swiata">
+                <LayoutDashboard className="h-3.5 w-3.5 mr-1.5" /> Tablica Świata
+              </Link>
+            </Button>
             <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
               {db.characters.length}{" "}
               {db.characters.length === 1 ? "postać" : db.characters.length < 5 ? "postacie" : "postaci"}
@@ -58,7 +61,6 @@ const Index = () => {
           </div>
         </header>
 
-        {/* Grid */}
         <section className="container pb-20">
           {db.characters.length === 0 ? (
             <div className="vault-panel p-12 text-center max-w-lg mx-auto">
