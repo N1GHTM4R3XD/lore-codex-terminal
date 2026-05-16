@@ -1,6 +1,7 @@
 import { useRef } from "react";
-import { Settings as SettingsIcon, Download, Upload, RotateCcw, Globe } from "lucide-react";
+import { Settings as SettingsIcon, Download, Upload, RotateCcw, Globe, HelpCircle, HardDrive, ShieldCheck, AlertTriangle } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Effect, VaultDB, DEFAULT_DB } from "@/lib/vault-types";
 import { toast } from "@/hooks/use-toast";
@@ -26,9 +27,109 @@ const LANGS: { id: Lang; label: string }[] = [
   { id: "en", label: "English" },
 ];
 
+function getStorageSize(): string {
+  try {
+    const raw = localStorage.getItem("lore-vault:db:v3") ?? "";
+    const bytes = new Blob([raw]).size;
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+  } catch {
+    return "?";
+  }
+}
+
+function DataGuide({ lang }: { lang: Lang }) {
+  const isPl = lang === "pl";
+  return (
+    <div className="space-y-4 text-sm">
+      <div className="flex items-start gap-2">
+        <ShieldCheck className="h-4 w-4 text-green-400 flex-shrink-0 mt-0.5" />
+        <div>
+          <p className="font-mono text-xs uppercase tracking-widest text-green-400 mb-1">
+            {isPl ? "Autozapis lokalny" : "Local autosave"}
+          </p>
+          <p className="text-muted-foreground leading-relaxed">
+            {isPl
+              ? "Wszystkie dane Vault są zapisywane natychmiast w pamięci przeglądarki (localStorage) po każdej zmianie. Dane nigdy nie opuszczają Twojego urządzenia."
+              : "All Vault data is saved immediately in your browser's localStorage after every change. Data never leaves your device."}
+          </p>
+        </div>
+      </div>
+
+      <div className="flex items-start gap-2">
+        <AlertTriangle className="h-4 w-4 text-amber-400 flex-shrink-0 mt-0.5" />
+        <div>
+          <p className="font-mono text-xs uppercase tracking-widest text-amber-400 mb-1">
+            {isPl ? "Ważne!" : "Important!"}
+          </p>
+          <p className="text-muted-foreground leading-relaxed">
+            {isPl
+              ? "Wyczyszczenie danych przeglądarki (cache, pliki cookie, localStorage) usunie też Vault. Regularnie eksportuj kopię zapasową klikając Eksport JSON."
+              : "Clearing browser data (cache, cookies, localStorage) will also delete the Vault. Regularly export a backup by clicking Export JSON."}
+          </p>
+        </div>
+      </div>
+
+      <div className="border-t border-border pt-3">
+        <p className="font-mono text-xs uppercase tracking-widest text-[hsl(var(--rune))] mb-2 flex items-center gap-1.5">
+          <Download className="h-3 w-3" />
+          {isPl ? "Eksport JSON" : "Export JSON"}
+        </p>
+        <p className="text-muted-foreground leading-relaxed mb-2">
+          {isPl
+            ? "Pobiera plik .json z pełną zawartością Vault. Zachowaj go jako kopię zapasową lub przenieś na inne urządzenie."
+            : "Downloads a .json file with the full Vault contents. Keep it as a backup or transfer to another device."}
+        </p>
+        <p className="font-mono text-xs uppercase tracking-widest text-[hsl(var(--rune))] mb-2 flex items-center gap-1.5 mt-3">
+          <Upload className="h-3 w-3" />
+          {isPl ? "Import JSON" : "Import JSON"}
+        </p>
+        <p className="text-muted-foreground leading-relaxed">
+          {isPl
+            ? "Wczytuje plik .json i zastępuje obecne dane Vault. Przed importem zrób eksport — ta operacja jest nieodwracalna."
+            : "Loads a .json file and replaces the current Vault data. Export first — this operation cannot be undone."}
+        </p>
+      </div>
+
+      <div className="border-t border-border pt-3">
+        <p className="font-mono text-xs uppercase tracking-widest text-[hsl(var(--rune))] mb-2">
+          {isPl ? "Struktura pliku JSON" : "JSON file structure"}
+        </p>
+        <pre className="text-[11px] font-mono text-muted-foreground bg-background/60 rounded p-3 overflow-x-auto border border-border leading-relaxed">
+{`{
+  "characters": [       // ${isPl ? "lista postaci" : "character list"}
+    {
+      "id": "...",
+      "name": "...",
+      "lore": "...",
+      "entities": [],   // ${isPl ? "encyklopedia" : "encyclopedia"}
+      "journal": [],
+      "palette": "...",
+      "font": "...",
+      ...
+    }
+  ],
+  "worldBoard": {...},  // ${isPl ? "główna tablica" : "main board"}
+  "namedBoards": [],    // ${isPl ? "tablice własne" : "custom boards"}
+  "folders": [],        // ${isPl ? "foldery postaci" : "character folders"}
+  "worlds": [],         // ${isPl ? "światy" : "worlds"}
+  "connections": [],    // ${isPl ? "połączenia" : "connections"}
+  "settings": {
+    "effect": "embers",
+    ...
+  }
+}`}
+        </pre>
+      </div>
+    </div>
+  );
+}
+
 export const SettingsModal = ({ db, setDb }: Props) => {
   const fileRef = useRef<HTMLInputElement>(null);
   const { lang, setLang } = useLang();
+  const storageSize = getStorageSize();
 
   const exportJSON = () => {
     const blob = new Blob([JSON.stringify(db, null, 2)], { type: "application/json" });
@@ -117,9 +218,41 @@ export const SettingsModal = ({ db, setDb }: Props) => {
           </div>
 
           <div className="pt-2 border-t border-border">
-            <h3 className="font-mono text-xs uppercase tracking-widest text-[hsl(var(--rune))] mb-2">
-              {t("settings.data", lang)}
-            </h3>
+            <div className="flex items-center gap-2 mb-3">
+              <h3 className="font-mono text-xs uppercase tracking-widest text-[hsl(var(--rune))]">
+                {t("settings.data", lang)}
+              </h3>
+
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    className="h-4 w-4 rounded-full flex items-center justify-center text-muted-foreground hover:text-[hsl(var(--rune))] transition-colors"
+                    aria-label={lang === "pl" ? "Pomoc — format i zapis danych" : "Help — data format and storage"}
+                  >
+                    <HelpCircle className="h-3.5 w-3.5" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent
+                  side="top"
+                  align="start"
+                  className="vault-panel w-[480px] max-h-[70vh] overflow-y-auto p-5"
+                >
+                  <DataGuide lang={lang} />
+                </PopoverContent>
+              </Popover>
+
+              <span className="ml-auto flex items-center gap-1 font-mono text-[10px] text-muted-foreground">
+                <HardDrive className="h-3 w-3" />
+                {storageSize}
+                <span className="opacity-60">· localStorage</span>
+              </span>
+            </div>
+
+            <div className="mb-3 flex items-center gap-1.5 text-[10px] font-mono text-green-400 uppercase tracking-widest">
+              <span className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
+              {lang === "pl" ? "Autozapis aktywny · dane na Twoim urządzeniu" : "Autosave active · data on your device"}
+            </div>
+
             <div className="flex flex-wrap gap-2">
               <Button size="sm" variant="outline" onClick={exportJSON} className="font-mono uppercase text-xs">
                 <Download className="h-3.5 w-3.5 mr-1.5" />{t("settings.export", lang)}

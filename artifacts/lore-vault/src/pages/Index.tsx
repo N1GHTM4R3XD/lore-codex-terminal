@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, LayoutDashboard, FolderPlus, ChevronDown, ChevronRight, Trash2, FolderMinus, FolderOpen, User } from "lucide-react";
+import { Plus, LayoutDashboard, FolderPlus, ChevronDown, ChevronRight, Trash2, FolderMinus, FolderOpen, User, HardDrive } from "lucide-react";
 import { useVaultDB } from "@/hooks/useVaultDB";
 import { ParticleCanvas } from "@/components/vault/ParticleCanvas";
 import { CharacterCard } from "@/components/vault/CharacterCard";
@@ -11,6 +11,32 @@ import { Link, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { Character, Folder } from "@/lib/vault-types";
 import { cn } from "@/lib/utils";
+import { useLang } from "@/hooks/useLang";
+
+function getStorageSize(): string {
+  try {
+    const raw = localStorage.getItem("lore-vault:db:v3") ?? "";
+    const bytes = new Blob([raw]).size;
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+  } catch {
+    return "?";
+  }
+}
+
+function AutosaveBadge() {
+  const { lang } = useLang();
+  return (
+    <span className="inline-flex items-center gap-2 text-[10px] font-mono tracking-widest text-muted-foreground/70">
+      <span className="h-1.5 w-1.5 rounded-full bg-green-400/70 animate-pulse" />
+      {lang === "pl" ? "Autozapis aktywny" : "Autosave active"}
+      <span className="opacity-50">·</span>
+      <HardDrive className="h-3 w-3 opacity-50" />
+      <span className="opacity-70">{getStorageSize()} · localStorage</span>
+    </span>
+  );
+}
 
 const FOLDER_COLORS = [
   "#cf9d7b", "#8fc4d8", "#cfa8e0", "#a8d8a0", "#e89a9a",
@@ -351,10 +377,13 @@ const Index = () => {
         </section>
 
         <footer className="container py-12 text-center font-mono text-xs uppercase tracking-[0.4em] text-muted-foreground">
-          <span className="inline-flex items-center gap-3">
-            <span className="h-px w-12 bg-border" />
-            Lore Vault · Codex Terminal
-            <span className="h-px w-12 bg-border" />
+          <span className="inline-flex flex-col items-center gap-3">
+            <span className="inline-flex items-center gap-3">
+              <span className="h-px w-12 bg-border" />
+              Lore Vault · Codex Terminal
+              <span className="h-px w-12 bg-border" />
+            </span>
+            <AutosaveBadge />
           </span>
         </footer>
       </main>
