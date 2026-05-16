@@ -1,9 +1,11 @@
 import { Fragment, ReactNode } from "react";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Entity } from "./vault-types";
 
 /**
  * Lightweight markdown + [[WikiLink]] + entity highlighter.
  * Supports: **bold**, *italic*, > blockquote, # headings, `code`, [[link]], paragraphs.
+ * Entity tokens and [[wiki-links]] get a rich HoverCard with type + description.
  */
 
 export function renderLore(
@@ -27,6 +29,46 @@ export function renderLore(
   });
 }
 
+function EntityToken({
+  label,
+  entity,
+  variant,
+  onClick,
+}: {
+  label: string;
+  entity?: Entity;
+  variant: "wiki" | "highlight";
+  onClick?: () => void;
+}) {
+  const cls = variant === "wiki" ? "wiki-link" : "entity-highlight";
+  const trigger = (
+    <span
+      className={cls}
+      onClick={onClick}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => (e.key === "Enter" ? onClick?.() : null)}
+    >
+      {label}
+    </span>
+  );
+  if (!entity) return trigger;
+  return (
+    <HoverCard openDelay={120} closeDelay={80}>
+      <HoverCardTrigger asChild>{trigger}</HoverCardTrigger>
+      <HoverCardContent side="top" className="vault-panel w-72 p-4">
+        <p className="font-mono text-[10px] uppercase tracking-widest text-[hsl(var(--rune))]">
+          {entity.type}
+        </p>
+        <h4 className="font-display text-lg leading-tight mt-1">{entity.name}</h4>
+        <p className="text-sm italic text-[hsl(var(--ink))]/85 mt-2 leading-relaxed">
+          {entity.description || "Brak opisu — uzupełnij w Encyklopedii."}
+        </p>
+      </HoverCardContent>
+    </HoverCard>
+  );
+}
+
 function renderInline(text: string, entities: Entity[], onEntityClick?: (n: string) => void): ReactNode {
   // tokenize: [[wiki]], **bold**, *italic*, `code`
   const re = /(\[\[[^\]]+\]\]|\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g;
@@ -35,17 +77,15 @@ function renderInline(text: string, entities: Entity[], onEntityClick?: (n: stri
   return parts.map((part, i) => {
     if (part.startsWith("[[") && part.endsWith("]]")) {
       const name = part.slice(2, -2);
+      const ent = entities.find((e) => e.name.toLowerCase() === name.toLowerCase());
       return (
-        <span
+        <EntityToken
           key={i}
-          className="wiki-link"
+          label={name}
+          entity={ent}
+          variant="wiki"
           onClick={() => onEntityClick?.(name)}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => (e.key === "Enter" ? onEntityClick?.(name) : null)}
-        >
-          {name}
-        </span>
+        />
       );
     }
     if (part.startsWith("**") && part.endsWith("**")) return <strong key={i}>{part.slice(2, -2)}</strong>;
@@ -67,14 +107,13 @@ function highlightEntities(text: string, entities: Entity[], onEntityClick?: (n:
     const ent = entities.find((e) => e.name === p);
     if (ent) {
       return (
-        <span
+        <EntityToken
           key={i}
-          className="entity-highlight"
-          title={`${ent.type} — ${ent.description}`}
+          label={p}
+          entity={ent}
+          variant="highlight"
           onClick={() => onEntityClick?.(ent.name)}
-        >
-          {p}
-        </span>
+        />
       );
     }
     return <Fragment key={i}>{p}</Fragment>;
@@ -83,7 +122,6 @@ function highlightEntities(text: string, entities: Entity[], onEntityClick?: (n:
 
 /** Auto-detect proper nouns (capitalized words, with apostrophes/hyphens) not yet in entity list. */
 export function detectProperNouns(text: string, existing: string[]): string[] {
-  // strip [[wiki]] tokens (they're already handled)
   const cleaned = text.replace(/\[\[[^\]]+\]\]/g, " ");
   const re = /\b([A-ZŻŹĆŁŚÓĄĘŃ][a-zżźćłśóąęń]+(?:[''-][A-ZŻŹĆŁŚÓĄĘŃ]?[a-zżźćłśóąęń]+)*(?:\s+[A-ZŻŹĆŁŚÓĄĘŃ][a-zżźćłśóąęń]+){0,2})\b/g;
   const found = new Set<string>();
