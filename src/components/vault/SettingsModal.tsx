@@ -2,38 +2,31 @@ import { useRef } from "react";
 import { Settings as SettingsIcon, Download, Upload, RotateCcw } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Effect, Palette, VaultState, DEFAULT_STATE } from "@/lib/vault-types";
+import { Effect, VaultDB, DEFAULT_DB } from "@/lib/vault-types";
 import { toast } from "@/hooks/use-toast";
 
 interface Props {
-  state: VaultState;
-  setState: (s: VaultState) => void;
+  db: VaultDB;
+  setDb: (next: VaultDB) => void;
 }
 
-const PALETTES: { id: Palette; label: string; swatch: string }[] = [
-  { id: "abyss",   label: "Otchłań",  swatch: "linear-gradient(135deg,hsl(195,85%,60%),hsl(270,70%,65%))" },
-  { id: "crimson", label: "Karmin",   swatch: "linear-gradient(135deg,hsl(0,75%,55%),hsl(20,80%,55%))" },
-  { id: "arcane",  label: "Arkana",   swatch: "linear-gradient(135deg,hsl(280,80%,65%),hsl(200,90%,60%))" },
-  { id: "ember",   label: "Żar",      swatch: "linear-gradient(135deg,hsl(30,95%,55%),hsl(0,80%,55%))" },
-  { id: "verdant", label: "Zieleń",   swatch: "linear-gradient(135deg,hsl(145,70%,50%),hsl(90,60%,55%))" },
-];
-
 const EFFECTS: { id: Effect; label: string }[] = [
-  { id: "stars", label: "Gwiazdy" },
-  { id: "rain",  label: "Deszcz" },
-  { id: "fire",  label: "Ogień" },
-  { id: "void",  label: "Pustka" },
-  { id: "none",  label: "Brak" },
+  { id: "embers", label: "Żar" },
+  { id: "stars",  label: "Gwiazdy" },
+  { id: "rain",   label: "Deszcz" },
+  { id: "fire",   label: "Ogień" },
+  { id: "void",   label: "Pustka" },
+  { id: "none",   label: "Brak" },
 ];
 
-export const SettingsModal = ({ state, setState }: Props) => {
+export const SettingsModal = ({ db, setDb }: Props) => {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const exportJSON = () => {
-    const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+    const blob = new Blob([JSON.stringify(db, null, 2)], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = `lore-vault-${state.name.replace(/\s+/g, "_")}.json`;
+    a.download = `lore-vault-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(a.href);
     toast({ title: "Wyeksportowano", description: "Plik JSON zapisany." });
@@ -44,8 +37,11 @@ export const SettingsModal = ({ state, setState }: Props) => {
     r.onload = () => {
       try {
         const parsed = JSON.parse(String(r.result));
-        setState({ ...DEFAULT_STATE, ...parsed });
-        toast({ title: "Zaimportowano", description: "Karta postaci została wczytana." });
+        const next: VaultDB = parsed?.characters
+          ? { ...DEFAULT_DB, ...parsed }
+          : { characters: [parsed], settings: DEFAULT_DB.settings };
+        setDb(next);
+        toast({ title: "Zaimportowano", description: "Vault został wczytany." });
       } catch {
         toast({ title: "Błąd importu", description: "Nieprawidłowy plik JSON.", variant: "destructive" });
       }
@@ -54,8 +50,8 @@ export const SettingsModal = ({ state, setState }: Props) => {
   };
 
   const reset = () => {
-    if (confirm("Przywrócić domyślną kartę? Wszystkie zmiany zostaną utracone.")) {
-      setState(DEFAULT_STATE);
+    if (confirm("Przywrócić domyślny vault? Wszystkie karty zostaną utracone.")) {
+      setDb(DEFAULT_DB);
     }
   };
 
@@ -70,41 +66,22 @@ export const SettingsModal = ({ state, setState }: Props) => {
         <DialogHeader>
           <DialogTitle className="font-display rune-text text-2xl">Ustawienia Vault</DialogTitle>
           <DialogDescription className="font-mono text-xs uppercase tracking-widest">
-            Personalizuj kodeks
+            Globalne efekty i dane
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 pt-2">
           <div>
-            <h3 className="font-mono text-xs uppercase tracking-widest text-[hsl(var(--rune))] mb-2">Paleta</h3>
-            <div className="grid grid-cols-5 gap-2">
-              {PALETTES.map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => setState({ ...state, palette: p.id })}
-                  className={`group relative aspect-square rounded border-2 transition ${
-                    state.palette === p.id ? "border-[hsl(var(--rune))] shadow-rune" : "border-border hover:border-[hsl(var(--rune)/0.5)]"
-                  }`}
-                  style={{ background: p.swatch }}
-                  aria-label={p.label}
-                >
-                  <span className="absolute inset-x-0 -bottom-5 text-[10px] font-mono uppercase tracking-wider text-center text-muted-foreground">
-                    {p.label}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="pt-4">
-            <h3 className="font-mono text-xs uppercase tracking-widest text-[hsl(var(--rune))] mb-2">Efekty atmosferyczne</h3>
+            <h3 className="font-mono text-xs uppercase tracking-widest text-[hsl(var(--rune))] mb-2">
+              Efekty atmosferyczne (globalne)
+            </h3>
             <div className="flex flex-wrap gap-2">
               {EFFECTS.map((e) => (
                 <Button
                   key={e.id}
-                  variant={state.effect === e.id ? "default" : "outline"}
+                  variant={db.settings.effect === e.id ? "default" : "outline"}
                   size="sm"
-                  onClick={() => setState({ ...state, effect: e.id })}
+                  onClick={() => setDb({ ...db, settings: { ...db.settings, effect: e.id } })}
                   className="font-mono uppercase text-xs"
                 >
                   {e.label}

@@ -24,7 +24,12 @@ export const ParticleCanvas = ({ effect }: Props) => {
 
     type P = { x: number; y: number; vx: number; vy: number; r: number; a: number; life?: number; hue?: number };
     let particles: P[] = [];
-    const count = effect === "stars" ? 180 : effect === "rain" ? 220 : effect === "fire" ? 120 : 90;
+    const count =
+      effect === "stars" ? 180 :
+      effect === "rain" ? 220 :
+      effect === "fire" ? 120 :
+      effect === "embers" ? 90 :
+      90;
 
     const seed = () => {
       particles = Array.from({ length: count }, () => spawn());
@@ -39,6 +44,8 @@ export const ParticleCanvas = ({ effect }: Props) => {
           return { x: Math.random() * w, y: h + Math.random() * 40, vx: (Math.random() - 0.5) * 0.6, vy: -1 - Math.random() * 2, r: Math.random() * 2.5 + 1, a: 0.6, life: 1, hue: 15 + Math.random() * 35 };
         case "void":
           return { x: Math.random() * w, y: Math.random() * h, vx: (Math.random() - 0.5) * 0.3, vy: (Math.random() - 0.5) * 0.3, r: Math.random() * 2 + 0.5, a: Math.random() * 0.6 };
+        case "embers":
+          return { x: Math.random() * w, y: h + Math.random() * 60, vx: (Math.random() - 0.5) * 0.4, vy: -0.6 - Math.random() * 1.4, r: Math.random() * 2 + 0.6, a: 0.7, life: 1, hue: 25 + Math.random() * 20 };
         default:
           return { x: 0, y: 0, vx: 0, vy: 0, r: 1, a: 1 };
       }
@@ -72,6 +79,16 @@ export const ParticleCanvas = ({ effect }: Props) => {
           ctx.beginPath(); ctx.arc(p.x, p.y, p.r * devicePixelRatio, 0, Math.PI * 2); ctx.fill();
           if (p.x < 0 || p.x > w) p.vx *= -1;
           if (p.y < 0 || p.y > h) p.vy *= -1;
+        } else if (effect === "embers") {
+          p.life! -= 0.006;
+          ctx.fillStyle = `hsla(${p.hue}, 95%, 65%, ${p.life! * 0.8})`;
+          ctx.fillRect(
+            Math.round(p.x / devicePixelRatio) * devicePixelRatio,
+            Math.round(p.y / devicePixelRatio) * devicePixelRatio,
+            p.r * devicePixelRatio,
+            p.r * devicePixelRatio
+          );
+          if (p.life! <= 0 || p.y < -40) Object.assign(p, spawn());
         }
       }
       raf = requestAnimationFrame(draw);

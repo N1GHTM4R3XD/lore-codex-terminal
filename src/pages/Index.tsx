@@ -1,77 +1,81 @@
-import { useEffect, useState } from "react";
-import { useLocalStorage } from "@/hooks/useLocalStorage";
-import { DEFAULT_STATE, VaultState } from "@/lib/vault-types";
+import { Plus } from "lucide-react";
+import { useVaultDB } from "@/hooks/useVaultDB";
 import { ParticleCanvas } from "@/components/vault/ParticleCanvas";
-import { Hero } from "@/components/vault/Hero";
-import { VaultTabs, TabId } from "@/components/vault/VaultTabs";
-import { LoreTab } from "@/components/vault/LoreTab";
-import { JournalTab } from "@/components/vault/JournalTab";
-import { ManuscriptTab } from "@/components/vault/ManuscriptTab";
-import { MoodboardTab } from "@/components/vault/MoodboardTab";
-import { EncyclopediaTab } from "@/components/vault/EncyclopediaTab";
+import { CharacterCard } from "@/components/vault/CharacterCard";
 import { SettingsModal } from "@/components/vault/SettingsModal";
-import { Check, Save } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 
 const Index = () => {
-  const [state, setState] = useLocalStorage<VaultState>("lore-vault:v1", DEFAULT_STATE);
-  const [tab, setTab] = useState<TabId>("lore");
-  const [focusEntity, setFocusEntity] = useState<string | null>(null);
-  const [savedFlash, setSavedFlash] = useState(false);
+  const { db, addCharacter, deleteCharacter, setDb } = useVaultDB();
+  const navigate = useNavigate();
 
-  const update = (patch: Partial<VaultState>) => setState({ ...state, ...patch });
-
-  // Apply palette to <html>
+  // Restore global pixel-dark on the dashboard regardless of last visited card.
   useEffect(() => {
-    document.documentElement.dataset.palette = state.palette;
-  }, [state.palette]);
-
-  // Autosave indicator
-  useEffect(() => {
-    setSavedFlash(true);
-    const t = setTimeout(() => setSavedFlash(false), 1200);
-    return () => clearTimeout(t);
-  }, [state]);
-
-  const onEntity = (name: string) => {
-    setFocusEntity(name);
-    setTab("encyclopedia");
-    setTimeout(() => setFocusEntity(null), 2500);
-  };
+    document.documentElement.dataset.palette = "pixel-dark";
+  }, []);
 
   return (
     <div className="relative min-h-screen">
-      <ParticleCanvas effect={state.effect} />
+      <ParticleCanvas effect={db.settings.effect} />
 
-      {/* Top action bar */}
       <div className="fixed top-4 right-4 z-40 flex items-center gap-2">
-        <div
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full vault-panel font-mono text-[10px] uppercase tracking-widest transition-opacity ${
-            savedFlash ? "opacity-100" : "opacity-50"
-          }`}
-          aria-live="polite"
-        >
-          {savedFlash ? <Save className="h-3 w-3 text-[hsl(var(--rune))]" /> : <Check className="h-3 w-3 text-[hsl(var(--rune))]" />}
-          {savedFlash ? "Zapisuję..." : "Zapisano"}
-        </div>
-        <SettingsModal state={state} setState={setState} />
+        <SettingsModal db={db} setDb={setDb} />
       </div>
 
       <main className="relative z-10">
-        <Hero state={state} update={update} />
-
-        <div className="container py-10">
-          <div className="flex justify-center">
-            <VaultTabs value={tab} onChange={setTab} />
+        {/* Header */}
+        <header className="container pt-16 pb-10">
+          <div className="flex items-center gap-2 text-xs uppercase tracking-[0.4em] text-[hsl(var(--rune))] font-pixel animate-fade-in">
+            <span className="h-px w-10 bg-[hsl(var(--rune))]" />
+            Lore Vault
+            <span className="h-px w-10 bg-[hsl(var(--rune))]" />
           </div>
+          <h1 className="mt-6 text-4xl md:text-6xl font-display rune-text leading-tight">
+            Archiwum Postaci
+          </h1>
+          <p className="mt-3 max-w-2xl text-lg italic text-muted-foreground">
+            Mroczny kodeks twoich bohaterów. Każda karta to własny świat — paleta, ramka,
+            animacje i muzyka w tle.
+          </p>
 
-          <div key={tab} className="animate-fade-in">
-            {tab === "lore" && <LoreTab state={state} update={update} onEntity={onEntity} />}
-            {tab === "journal" && <JournalTab state={state} update={update} />}
-            {tab === "manuscript" && <ManuscriptTab state={state} update={update} />}
-            {tab === "moodboard" && <MoodboardTab state={state} update={update} />}
-            {tab === "encyclopedia" && <EncyclopediaTab state={state} update={update} focusName={focusEntity} />}
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <Button
+              onClick={() => {
+                const c = addCharacter();
+                navigate(`/character/${c.id}`);
+              }}
+              className="pixel-btn"
+              aria-label="Dodaj nową kartę postaci"
+            >
+              <Plus className="h-3 w-3 mr-1.5" /> Nowa karta
+            </Button>
+            <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+              {db.characters.length}{" "}
+              {db.characters.length === 1 ? "postać" : db.characters.length < 5 ? "postacie" : "postaci"}
+            </span>
           </div>
-        </div>
+        </header>
+
+        {/* Grid */}
+        <section className="container pb-20">
+          {db.characters.length === 0 ? (
+            <div className="vault-panel p-12 text-center max-w-lg mx-auto">
+              <p className="font-pixel text-2xl text-[hsl(var(--rune))] mb-4">✦</p>
+              <p className="font-display text-2xl">Vault jest pusty</p>
+              <p className="text-muted-foreground mt-2">
+                Stwórz pierwszą kartę, aby rozpocząć kronikę.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 animate-fade-in">
+              {db.characters.map((c) => (
+                <CharacterCard key={c.id} character={c} onDelete={deleteCharacter} />
+              ))}
+            </div>
+          )}
+        </section>
 
         <footer className="container py-12 text-center font-mono text-xs uppercase tracking-[0.4em] text-muted-foreground">
           <span className="inline-flex items-center gap-3">
