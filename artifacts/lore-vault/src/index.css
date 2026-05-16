@@ -70,9 +70,9 @@
     --sidebar-ring: 28 50% 65%;
 
     /* Default font family stacks — overridden per-card via inline style on .lv-card-scope */
-    --font-display: "Pixelify Sans", Cinzel, serif;
-    --font-body: "Cormorant Garamond", serif;
-    --font-mono: "JetBrains Mono", monospace;
+    --font-display: "Inter", system-ui, sans-serif;
+    --font-body: "Inter", system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, monospace;
   }
 
   [data-palette="pixel-dark"] {
@@ -166,7 +166,7 @@
   html { scroll-behavior: smooth; }
   body {
     @apply bg-background text-foreground;
-    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-family: 'Inter', system-ui, sans-serif;
     font-size: 17px;
     line-height: 1.6;
     background-image: var(--grain), radial-gradient(60% 40% at 50% 0%, hsl(var(--primary) / 0.08), transparent 70%);
@@ -175,7 +175,7 @@
     -webkit-font-smoothing: antialiased;
   }
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Pixelify Sans', 'Cinzel', serif;
+    font-family: 'Inter', system-ui, sans-serif;
     letter-spacing: 0.02em;
     font-weight: 600;
   }
@@ -205,9 +205,9 @@
 }
 
 @layer components {
-  .font-display    { font-family: var(--font-display, 'Pixelify Sans', 'Cinzel', serif); }
-  .font-body       { font-family: var(--font-body, 'Cormorant Garamond', serif); }
-  .font-mono       { font-family: var(--font-mono, 'JetBrains Mono', monospace); }
+  .font-display    { font-family: 'Inter', system-ui, sans-serif; }
+  .font-body       { font-family: 'Inter', system-ui, sans-serif; }
+  .font-mono       { font-family: 'JetBrains Mono', ui-monospace, monospace; }
   .font-pixel      { font-family: 'Press Start 2P', monospace; letter-spacing: 0; }
   .font-pixel-body { font-family: 'VT323', monospace; font-size: 1.15em; }
   .font-gothic     { font-family: 'Cinzel', serif; }
