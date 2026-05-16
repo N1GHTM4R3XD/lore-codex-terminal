@@ -1,36 +1,46 @@
-# [Project name]
+# Lore Vault
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+A dark fantasy character sheet app — create, customize, and manage your RPG characters with lore, journals, moodboards, and manuscripts in an immersive gothic terminal.
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
+- `pnpm --filter @workspace/lore-vault run dev` — run the frontend (workflow managed)
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
 
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
-- API: Express 5
-- DB: PostgreSQL + Drizzle ORM
-- Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
+- Frontend: React + Vite + Tailwind v3 + shadcn/ui
+- Routing: react-router-dom v7
+- State: localStorage via useVaultDB hook (no backend needed)
+- Fonts: Pixelify Sans, Cinzel, Cormorant Garamond, JetBrains Mono, etc. (Google Fonts)
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/lore-vault/src/` — frontend source
+- `artifacts/lore-vault/src/pages/` — Index, CharacterPage, WorldBoardPage, NotFound
+- `artifacts/lore-vault/src/components/vault/` — Lore Vault specific components
+- `artifacts/lore-vault/src/hooks/useVaultDB.ts` — all app state (localStorage)
+- `artifacts/lore-vault/src/lib/vault-types.ts` — core data types
+- `artifacts/lore-vault/src/index.css` — dark fantasy design system (CSS variables, palette themes)
+- `artifacts/lore-vault/tailwind.config.ts` — Tailwind v3 config with custom fonts/colors/animations
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Pure frontend app with no backend — all data stored in localStorage via useVaultDB
+- Tailwind v3 (not v4) with postcss — the copy script switched from @tailwindcss/vite to postcss pipeline
+- Multiple color palettes (pixel-dark, abyss, crimson, arcane, ember, verdant, etc.) via CSS data-palette attribute
+- Per-character font and animation settings stored in each character's data object
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- Character card creation and management (name, lore, image, tags)
+- Per-card customization: color palette, border frame, animation, font family
+- Tabs per character: Lore, Journal, Manuscript, Moodboard, Encyclopedia
+- World Board (Tablica Świata) — shared canvas for world-building
+- Music player integration per character
+- Dark fantasy design: pixel fonts, grain texture, rune glows, particle effects
 
 ## User preferences
 
@@ -38,7 +48,9 @@ _Populate as you build — explicit user instructions worth remembering across s
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- App uses Tailwind v3 via postcss (NOT @tailwindcss/vite) — vite.config.ts handles this via css.postcss
+- Do NOT run `pnpm dev` at workspace root — use workflows
+- Fonts come from Google Fonts CDN via index.html link tags
 
 ## Pointers
 

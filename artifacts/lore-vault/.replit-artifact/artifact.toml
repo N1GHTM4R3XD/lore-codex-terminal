@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Lore Vault"
+version = "1.0.0"
+id = "artifacts/lore-vault"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 25946
+
+[services.development]
+run = "pnpm --filter @workspace/lore-vault run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/lore-vault", "run", "build" ]
+publicDir = "artifacts/lore-vault/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25946"
+BASE_PATH = "/"
