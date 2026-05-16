@@ -1,12 +1,4 @@
-export type Palette =
-  | "pixel-dark"
-  | "abyss"
-  | "crimson"
-  | "arcane"
-  | "ember"
-  | "verdant"
-  | "cozy-forest"
-  | "pastel-dream";
+export type Palette = string; // built-in id or custom id starting with "custom_"
 
 export type Effect = "rain" | "fire" | "stars" | "void" | "embers" | "none";
 
@@ -16,11 +8,14 @@ export type CardAnimation =
   | "glow"
   | "shake"
   | "sparkle"
-  | "pixel-twinkle";
+  | "pixel-twinkle"
+  | "tilt"
+  | "breathe";
 
 export type FrameStyle = "pixel" | "ornament" | "neon" | "parchment" | "none";
 
-export type FontTheme = "pixel" | "gothic" | "serif" | "handwritten";
+/** Font is now a free-form Google Font family name. */
+export type FontTheme = string;
 
 export interface JournalEntry {
   id: string;
@@ -42,9 +37,55 @@ export interface MoodImage {
   caption?: string;
 }
 
+/** A simple whiteboard note (sticky). */
+export interface BoardNote {
+  id: string;
+  x: number; // px relative to board
+  y: number;
+  w: number;
+  h: number;
+  rotate: number;
+  color: string; // hsl(...) or hex
+  text: string;
+  font?: string;
+  imageUrl?: string;
+}
+
+/** A free-hand stroke on the whiteboard sketch layer. */
+export interface BoardStroke {
+  id: string;
+  color: string;
+  size: number;
+  /** flattened [x0,y0,x1,y1,...] in board coords */
+  points: number[];
+}
+
+export interface Whiteboard {
+  notes: BoardNote[];
+  strokes: BoardStroke[];
+}
+
+/** Per-character display fonts. Each is a Google Font family name. */
+export interface CardFonts {
+  display: string;  // headings / name
+  body: string;     // paragraphs
+  mono: string;     // labels / chips
+}
+
+/** A user-defined palette. Stored as 6 colors -> turned into CSS vars. */
+export interface CustomPalette {
+  id: string;         // "custom_xxx"
+  label: string;
+  background: string; // hex
+  card: string;
+  primary: string;
+  accent: string;
+  rune: string;
+  foreground: string;
+}
+
 /**
  * A single character card. Holds all narrative + visual customization.
- * VaultState is kept as an alias so existing tab components keep working.
  */
 export interface Character {
   id: string;
@@ -57,12 +98,15 @@ export interface Character {
   journal: JournalEntry[];
   entities: Entity[];
   moodboard: MoodImage[];
+  whiteboard: Whiteboard;
 
   // Per-card customization
   palette: Palette;
   animation: CardAnimation;
   frame: FrameStyle;
+  /** Back-compat: legacy single font theme. Used as display if `fonts` missing. */
   font: FontTheme;
+  fonts?: CardFonts;
   musicUrl?: string;
 }
 
@@ -70,10 +114,14 @@ export type VaultState = Character;
 
 export interface VaultDB {
   characters: Character[];
+  worldBoard: Whiteboard;
   settings: {
     effect: Effect;
+    customPalettes: CustomPalette[];
   };
 }
+
+const emptyBoard = (): Whiteboard => ({ notes: [], strokes: [] });
 
 const makeChar = (over: Partial<Character>): Character => ({
   id: over.id ?? `char_${Math.random().toString(36).slice(2, 9)}`,
@@ -86,10 +134,12 @@ const makeChar = (over: Partial<Character>): Character => ({
   journal: [],
   entities: [],
   moodboard: [],
+  whiteboard: emptyBoard(),
   palette: "pixel-dark",
   animation: "float",
   frame: "pixel",
-  font: "pixel",
+  font: "Pixelify Sans",
+  fonts: { display: "Pixelify Sans", body: "Cormorant Garamond", mono: "JetBrains Mono" },
   ...over,
 });
 
@@ -104,7 +154,8 @@ const sampleA: Character = makeChar({
   palette: "pixel-dark",
   animation: "float",
   frame: "pixel",
-  font: "pixel",
+  font: "Pixelify Sans",
+  fonts: { display: "Pixelify Sans", body: "Cormorant Garamond", mono: "JetBrains Mono" },
   lore: `[[Vael'thorin]] narodził się w cieniu [[Czarnej Cytadeli]], gdy bliźniacze księżyce stanęły w koniunkcji nad [[Morzem Popiołu]].
 
 Dorastał wśród mnichów zakonu **Zerwanej Pieczęci**, ucząc się czytać runy wyryte w samym tkaninie rzeczywistości. Powiadają, że w jego oczach wciąż tli się odprysk *Pierwszego Światła* — relikt, którego nawet [[Inkwizycja Eonu]] nie ośmiela się tknąć.
@@ -151,7 +202,8 @@ const sampleB: Character = makeChar({
   palette: "cozy-forest",
   animation: "sparkle",
   frame: "ornament",
-  font: "serif",
+  font: "Cormorant Garamond",
+  fonts: { display: "Cormorant Garamond", body: "Lora", mono: "JetBrains Mono" },
   lore: `Lyra mieszka w drewnianej chacie na skraju [[Mglistego Gaju]], otoczona przez siedem kotów i niezliczone słoiki suszonych ziół.
 
 Każdego ranka warzy napar z **majowej rosy** i czyta listy od [[Wędrownego Listonosza]], który zawsze pachnie deszczem.`,
@@ -170,7 +222,8 @@ Każdego ranka warzy napar z **majowej rosy** i czyta listy od [[Wędrownego Lis
 
 export const DEFAULT_DB: VaultDB = {
   characters: [sampleA, sampleB],
-  settings: { effect: "embers" },
+  worldBoard: emptyBoard(),
+  settings: { effect: "embers", customPalettes: [] },
 };
 
 export const DEFAULT_STATE: Character = sampleA;
@@ -181,3 +234,32 @@ export const newCharacter = (): Character =>
     name: "Nowa postać",
     tagline: "Edytuj kartę, aby rozpocząć historię.",
   });
+
+/** Migration helper for old persisted DBs. */
+export function migrateDB(db: any): VaultDB {
+  if (!db || typeof db !== "object") return DEFAULT_DB;
+  const characters = (db.characters ?? []).map((c: any) => ({
+    ...c,
+    whiteboard: c.whiteboard ?? emptyBoard(),
+    fonts:
+      c.fonts ??
+      {
+        display:
+          c.font === "pixel" ? "Pixelify Sans" :
+          c.font === "gothic" ? "Cinzel" :
+          c.font === "serif" ? "Cormorant Garamond" :
+          c.font === "handwritten" ? "Caveat" :
+          (typeof c.font === "string" && c.font) || "Pixelify Sans",
+        body: "Cormorant Garamond",
+        mono: "JetBrains Mono",
+      },
+  }));
+  return {
+    characters,
+    worldBoard: db.worldBoard ?? emptyBoard(),
+    settings: {
+      effect: db.settings?.effect ?? "embers",
+      customPalettes: db.settings?.customPalettes ?? [],
+    },
+  };
+}
