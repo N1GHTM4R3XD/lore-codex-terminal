@@ -226,21 +226,98 @@ function highlightEntities(
   });
 }
 
-/** Auto-detect proper nouns (capitalized words) not yet in entity list. */
+// Comprehensive stop-word list: sentence starters + common words in Polish & English
+const STOP_WORDS = new Set([
+  // Polish – very common / sentence-starter
+  "Ale", "Albo", "Bo", "Bądź", "Był", "Była", "Było", "Byli",
+  "Choć", "Chociaż", "Co", "Czy", "Czemu", "Dlaczego", "Dlatego",
+  "Dorastał", "Dopóki", "Gdy", "Gdzie", "I", "Ich", "Jego", "Jej",
+  "Jednak", "Jako", "Jeszcze", "Jest", "Jak", "Już", "Każdego",
+  "Kiedy", "Który", "Która", "Które", "Lecz", "Lub", "Mimo",
+  "Na", "Nad", "Natomiast", "Nie", "No", "Od", "Oraz",
+  "Po", "Pod", "Ponieważ", "Potem", "Przed", "Przez", "Przy",
+  "Rozdział", "Skoro", "Skąd", "Ta", "Ten", "To", "Tej", "Tego",
+  "Temu", "Tam", "Tu", "Tutaj", "Tak", "Tylko",
+  "W", "Właśnie", "Wobec", "Więc", "Za", "Zanim", "Zatem", "Ze",
+  "Już", "Wtedy", "Stamtąd", "Dookoła", "Wokół",
+  // ordinals / numbers written out
+  "Drugiego", "Trzeciego", "Czwartego", "Piątego", "Szóstego",
+  "Pierwszego", "Ostatniego",
+  // English sentence starters
+  "A", "And", "As", "At", "But", "By", "For", "From",
+  "He", "Her", "His", "If", "In", "Into", "It", "Its",
+  "Not", "Of", "On", "Or", "Our", "Out",
+  "She", "So", "The", "Their", "They", "This", "That", "These", "Those",
+  "To", "Up", "Was", "We", "Were", "When", "Where", "Which", "Who",
+  "With", "Yet", "You", "Your",
+]);
+
+/**
+ * Auto-detect proper nouns not yet in entity list.
+ *
+ * Strategy:
+ *  1. Extract all [[WikiLink]] names first (user-tagged → always proper nouns).
+ *  2. Scan plain text for mid-sentence capitalised words, skipping:
+ *     - The first word of every sentence/paragraph.
+ *     - Common stop words.
+ *     - Words already in the entity list (fuzzy via stem).
+ */
 export function detectProperNouns(text: string, existing: string[]): string[] {
-  const cleaned = text.replace(/\[\[[^\]]+\]\]/g, " ");
-  const re = /\b([A-ZŻŹĆŁŚÓĄĘŃ][a-zżźćłśóąęń]+(?:[''-][A-ZŻŹĆŁŚÓĄĘŃ]?[a-zżźćłśóąęń]+)*(?:\s+[A-ZŻŹĆŁŚÓĄĘŃ][a-zżźćłśóąęń]+){0,2})\b/g;
+  const existingLow = new Set(existing.map((e) => e.toLowerCase()));
+  const existingStems = new Set(existing.map((e) => stemOf(e).toLowerCase()));
   const found = new Set<string>();
-  const existingStems = new Set(existing.map((s) => stemOf(s).toLowerCase()));
-  const stop = new Set(["Rozdział", "Pamięć", "Świt", "Powiadają", "Niebo", "Trzeciego"]);
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(cleaned))) {
-    const w = m[1].trim();
-    if (w.length < 4) continue;
-    if (stop.has(w)) continue;
-    // Skip if any existing entity shares the same stem
-    if (existingStems.has(stemOf(w).toLowerCase())) continue;
-    found.add(w);
+
+  const isKnown = (name: string) => {
+    const low = name.toLowerCase();
+    return existingLow.has(low) || existingStems.has(stemOf(name).toLowerCase());
+  };
+
+  // PASS 1 — extract [[WikiLink]] names explicitly typed by user
+  text.replace(/\[\[([^\]]+)\]\]/g, (_, name: string) => {
+    const n = name.trim();
+    if (n.length >= 2 && !isKnown(n)) found.add(n);
+    return "";
+  });
+
+  // PASS 2 — strip markdown / wiki markup, then scan for mid-sentence capitals
+  const clean = text
+    .replace(/\[\[[^\]]+\]\]/g, " ")           // remove wiki links
+    .replace(/\*\*?([^*]+)\*\*?/g, "$1")       // un-bold / un-italic
+    .replace(/`[^`]+`/g, " ")                   // remove code
+    .replace(/^#+\s*/gm, "")                    // remove heading markers
+    .replace(/^>\s*/gm, "");                    // remove blockquote markers
+
+  // Split into paragraph-lines, then into sentence fragments
+  for (const line of clean.split(/\n+/)) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+
+    // Rough sentence split: break on ". ", "! ", "? " followed by uppercase
+    // Keep the splitting point so we don't confuse sentence starts
+    const fragments = trimmed.split(/(?<=[.!?])\s+(?=[A-ZŻŹĆŁŚÓĄĘŃ])/);
+
+    for (const frag of fragments) {
+      // Tokenise — split on whitespace and strip leading/trailing punctuation
+      const rawWords = frag.trim().split(/\s+/);
+      // Skip index 0: it is the first word of a sentence (capitalised by grammar rule)
+      for (let i = 1; i < rawWords.length; i++) {
+        const stripped = rawWords[i]
+          .replace(/^[^\p{L}\p{N}]*/u, "")
+          .replace(/[^\p{L}\p{N}]*$/u, "")
+          .trim();
+
+        if (!stripped || stripped.length < 2) continue;
+        // Must start with an uppercase letter (Polish or Latin)
+        if (!/^[A-ZŻŹĆŁŚÓĄĘŃ]/.test(stripped)) continue;
+        // Skip stop words
+        if (STOP_WORDS.has(stripped)) continue;
+        // Skip already-known entities
+        if (isKnown(stripped)) continue;
+
+        found.add(stripped);
+      }
+    }
   }
+
   return Array.from(found);
 }

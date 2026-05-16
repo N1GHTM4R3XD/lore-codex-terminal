@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Entity, VaultState } from "@/lib/vault-types";
 import { useLang } from "@/hooks/useLang";
 import { t, ENTITY_TYPES } from "@/lib/i18n";
@@ -92,54 +91,45 @@ export const EncyclopediaTab = ({ state, update, focusName }: Props) => {
         {filtered.map((e) => {
           const highlight = focusName && focusName.toLowerCase() === e.name.toLowerCase();
           return (
-            <HoverCard key={e.id} openDelay={120}>
-              <HoverCardTrigger asChild>
-                <article
-                  className={`vault-panel p-4 grid gap-3 md:grid-cols-[1fr,180px,2fr,auto] items-center transition ${
-                    highlight ? "border-[hsl(var(--rune))] shadow-rune animate-fade-in" : ""
-                  }`}
-                >
-                  <Input
-                    value={e.name}
-                    onChange={(ev) => patch(e.id, { name: ev.target.value })}
-                    className="font-display bg-background/40"
-                    placeholder={t("enc.name", lang)}
-                  />
-                  <Select value={e.type} onValueChange={(v) => patch(e.id, { type: v })}>
-                    <SelectTrigger className="font-mono text-xs bg-background/40">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {types.map((tp) => (
-                        <SelectItem key={tp.value} value={tp.value}>{tp.label}</SelectItem>
-                      ))}
-                      {/* Preserve any custom type not in the list */}
-                      {!types.find(tp => tp.value === e.type) && (
-                        <SelectItem value={e.type}>{e.type}</SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
-                  <Textarea
-                    value={e.description}
-                    onChange={(ev) => patch(e.id, { description: ev.target.value })}
-                    className="min-h-[44px] bg-background/40"
-                    placeholder={t("enc.desc", lang)}
-                  />
-                  <button
-                    onClick={() => remove(e.id)}
-                    className="text-muted-foreground hover:text-destructive p-2"
-                    aria-label={t("enc.remove", lang)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </article>
-              </HoverCardTrigger>
-              <HoverCardContent side="top" className="vault-panel w-80">
-                <p className="font-mono text-xs uppercase tracking-widest text-[hsl(var(--rune))]">{e.type}</p>
-                <h4 className="font-display text-lg mt-1">{e.name}</h4>
-                <p className="text-sm text-[hsl(var(--ink))]/80 mt-2">{e.description || t("enc.noDesc", lang)}</p>
-              </HoverCardContent>
-            </HoverCard>
+            <article
+              key={e.id}
+              className={`vault-panel p-4 grid gap-3 md:grid-cols-[1fr,180px,2fr,auto] items-center transition ${
+                highlight ? "border-[hsl(var(--rune))] shadow-rune animate-fade-in" : ""
+              }`}
+            >
+              <Input
+                value={e.name}
+                onChange={(ev) => patch(e.id, { name: ev.target.value })}
+                className="font-display bg-background/40"
+                placeholder={t("enc.name", lang)}
+              />
+              <Select value={e.type} onValueChange={(v) => patch(e.id, { type: v })}>
+                <SelectTrigger className="font-mono text-xs bg-background/40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {types.map((tp) => (
+                    <SelectItem key={tp.value} value={tp.value}>{tp.label}</SelectItem>
+                  ))}
+                  {!types.find(tp => tp.value === e.type) && (
+                    <SelectItem value={e.type}>{e.type}</SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+              <Textarea
+                value={e.description}
+                onChange={(ev) => patch(e.id, { description: ev.target.value })}
+                className="min-h-[44px] bg-background/40"
+                placeholder={t("enc.desc", lang)}
+              />
+              <button
+                onClick={() => remove(e.id)}
+                className="text-muted-foreground hover:text-destructive p-2"
+                aria-label={t("enc.remove", lang)}
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </article>
           );
         })}
       </div>

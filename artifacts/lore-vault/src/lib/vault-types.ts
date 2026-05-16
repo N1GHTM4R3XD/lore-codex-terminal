@@ -2,21 +2,10 @@ export type Palette = string; // built-in id or custom id starting with "custom_
 
 export type Effect = "rain" | "fire" | "stars" | "void" | "embers" | "none";
 
+/** Per-character ambient effect shown as full-page particles on the character page. */
 export type CardAnimation =
-  | "none"
-  | "float"
-  | "glow"
-  | "shake"
-  | "sparkle"
-  | "pixel-twinkle"
-  | "tilt"
-  | "breathe"
-  | "leaves"
-  | "rain-card"
-  | "fog"
-  | "bubbles"
-  | "waves"
-  | "stars-card";
+  | "none" | "rain" | "fire" | "stars" | "embers" | "void"
+  | "leaves" | "fog" | "bubbles" | "snow";
 
 export type FrameStyle = "pixel" | "ornament" | "neon" | "parchment" | "none";
 
@@ -183,7 +172,7 @@ const makeChar = (over: Partial<Character>): Character => ({
   moodboard: [],
   whiteboard: emptyBoard(),
   palette: "pixel-dark",
-  animation: "float",
+  animation: "none",
   frame: "pixel",
   font: "Pixelify Sans",
   fonts: { display: "Pixelify Sans", body: "Cormorant Garamond", mono: "JetBrains Mono" },
@@ -199,7 +188,7 @@ const sampleA: Character = makeChar({
   background:
     "https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=2000&q=80&auto=format&fit=crop",
   palette: "pixel-dark",
-  animation: "float",
+  animation: "rain",
   frame: "pixel",
   font: "Pixelify Sans",
   fonts: { display: "Pixelify Sans", body: "Cormorant Garamond", mono: "JetBrains Mono" },
@@ -247,7 +236,7 @@ const sampleB: Character = makeChar({
   background:
     "https://images.unsplash.com/photo-1500964757637-c85e8a162699?w=2000&q=80&auto=format&fit=crop",
   palette: "cozy-forest",
-  animation: "sparkle",
+  animation: "leaves",
   frame: "ornament",
   font: "Cormorant Garamond",
   fonts: { display: "Cormorant Garamond", body: "Lora", mono: "JetBrains Mono" },
@@ -287,11 +276,19 @@ export const newCharacter = (): Character =>
   });
 
 /** Migration helper for old persisted DBs. */
+const ANIM_MIGRATE: Record<string, CardAnimation> = {
+  float: "none", glow: "stars", shake: "void", sparkle: "embers",
+  "pixel-twinkle": "stars", tilt: "none", breathe: "fog",
+  leaves: "leaves", "rain-card": "rain", fog: "fog",
+  bubbles: "bubbles", waves: "rain", "stars-card": "stars",
+};
+
 export function migrateDB(db: any): VaultDB {
   if (!db || typeof db !== "object") return DEFAULT_DB;
   const characters = (db.characters ?? []).map((c: any) => ({
     ...c,
     whiteboard: c.whiteboard ?? emptyBoard(),
+    animation: ANIM_MIGRATE[c.animation as string] ?? (c.animation as CardAnimation) ?? "none",
     fonts:
       c.fonts ??
       {

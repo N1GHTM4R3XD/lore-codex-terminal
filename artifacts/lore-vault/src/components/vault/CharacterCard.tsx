@@ -31,7 +31,14 @@ export const CharacterCard = ({ character, onDelete }: Props) => {
       {/* Animation lives on an inner wrapper so transforms don't fight with hover styling. */}
       <div data-card-anim={animation} className="will-change-transform">
         <Link to={`/character/${id}`} className="block focus:outline-none" aria-label={`Otwórz kartę ${name}`}>
-          <div className="aspect-[4/5] overflow-hidden mb-3 bg-muted relative">
+          <div
+            className="aspect-[4/5] overflow-hidden mb-3 bg-muted relative"
+            style={character.background ? {
+              backgroundImage: `url("${character.background}")`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            } : undefined}
+          >
             {avatar ? (
               <img
                 src={avatar}

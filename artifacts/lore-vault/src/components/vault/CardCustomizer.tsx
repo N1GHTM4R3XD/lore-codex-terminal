@@ -33,20 +33,16 @@ const FRAMES: { id: FrameStyle; label: string }[] = [
 ];
 
 const ANIMS: { id: CardAnimation; label: string; emoji: string }[] = [
-  { id: "none",         label: "Brak",         emoji: "—" },
-  { id: "float",        label: "Unoszenie",    emoji: "🌫" },
-  { id: "glow",         label: "Poświata",     emoji: "✨" },
-  { id: "shake",        label: "Drganie",      emoji: "⚡" },
-  { id: "sparkle",      label: "Iskry",        emoji: "💥" },
-  { id: "pixel-twinkle",label: "Pixel migot",  emoji: "🔮" },
-  { id: "tilt",         label: "Przechył",     emoji: "↔" },
-  { id: "breathe",      label: "Oddech",       emoji: "🌊" },
-  { id: "leaves",       label: "Liście",       emoji: "🍂" },
-  { id: "rain-card",    label: "Deszcz",       emoji: "🌧" },
-  { id: "fog",          label: "Mgła",         emoji: "🌫️" },
-  { id: "bubbles",      label: "Bąbelki",      emoji: "🫧" },
-  { id: "waves",        label: "Fale",         emoji: "🌊" },
-  { id: "stars-card",   label: "Gwiazdy",      emoji: "⭐" },
+  { id: "none",    label: "Brak",    emoji: "—" },
+  { id: "rain",    label: "Deszcz",  emoji: "🌧" },
+  { id: "fire",    label: "Ogień",   emoji: "🔥" },
+  { id: "stars",   label: "Gwiazdy", emoji: "⭐" },
+  { id: "embers",  label: "Żar",     emoji: "🔸" },
+  { id: "void",    label: "Pustka",  emoji: "🌀" },
+  { id: "leaves",  label: "Liście",  emoji: "🍂" },
+  { id: "fog",     label: "Mgła",    emoji: "🌫️" },
+  { id: "bubbles", label: "Bąbelki", emoji: "🫧" },
+  { id: "snow",    label: "Śnieg",   emoji: "❄️" },
 ];
 
 const FONT_CATEGORIES: { id: string; label: string }[] = [
@@ -265,7 +261,7 @@ export const CardCustomizer = ({ character, update, customPalettes, addCustomPal
           </section>
 
           <section>
-            <Label className="font-mono text-xs uppercase tracking-widest text-[hsl(var(--rune))]">Animacja karty</Label>
+            <Label className="font-mono text-xs uppercase tracking-widest text-[hsl(var(--rune))]">Efekt otoczenia <span className="text-muted-foreground normal-case tracking-normal">(pełna strona postaci)</span></Label>
             <div className="flex flex-wrap gap-2 mt-2">
               {ANIMS.map((a) => (
                 <Button key={a.id} variant={character.animation === a.id ? "default" : "outline"} size="sm"

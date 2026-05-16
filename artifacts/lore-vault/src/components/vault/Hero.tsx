@@ -17,10 +17,12 @@ export const Hero = ({ state, update }: Props) => {
   return (
     <header className="relative isolate overflow-hidden">
       {/* background image */}
-      <div
-        className="absolute inset-0 -z-10 bg-cover bg-center animate-fade-in-slow"
-        style={{ backgroundImage: `url("${state.background}")` }}
-      />
+      {state.background && (
+        <div
+          className="absolute inset-0 -z-10 bg-cover bg-center animate-fade-in"
+          style={{ backgroundImage: `url("${state.background}")` }}
+        />
+      )}
       <div className="absolute inset-0 -z-10 bg-gradient-hero" />
       <div className="absolute inset-0 -z-10 bg-grain opacity-30 mix-blend-overlay" />
       {/* vignette */}

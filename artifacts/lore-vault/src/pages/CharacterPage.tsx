@@ -86,6 +86,9 @@ const CharacterPage = () => {
       style={fontStyle}
     >
       <ParticleCanvas effect={db.settings.effect} />
+      {character.animation !== "none" && (
+        <ParticleCanvas effect={character.animation} characterLayer />
+      )}
 
       {/* Top action bar */}
       <div className="fixed top-4 right-4 z-40 flex items-center gap-2">
@@ -117,10 +120,7 @@ const CharacterPage = () => {
       </div>
 
       <main className="relative z-10">
-        {/* Hero gets the per-card animation, NOT the whole page. */}
-        <div data-card-anim={character.animation} className="will-change-transform">
-          <Hero state={character} update={update} />
-        </div>
+        <Hero state={character} update={update} />
 
         <div className="container py-10">
           <div className="flex justify-center">
