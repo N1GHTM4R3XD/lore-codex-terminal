@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { ArrowLeft, LayoutDashboard, Globe, Plus, Pencil, Trash2, Check, X } from "lucide-react";
 import { useVaultDB } from "@/hooks/useVaultDB";
 import { ParticleCanvas } from "@/components/vault/ParticleCanvas";
@@ -20,7 +20,10 @@ const WorldBoardPage = () => {
     addNamedBoard, updateNamedBoard, setNamedBoardContent, deleteNamedBoard,
   } = useVaultDB();
 
-  const [mainTab, setMainTab] = useState<MainTab>("tablica");
+  const [searchParams] = useSearchParams();
+  const [mainTab, setMainTab] = useState<MainTab>(
+    searchParams.get("tab") === "swiaty" ? "swiaty" : "tablica",
+  );
   const [selectedBoardId, setSelectedBoardId] = useState<string | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");

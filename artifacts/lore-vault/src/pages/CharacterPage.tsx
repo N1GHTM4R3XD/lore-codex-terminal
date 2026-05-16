@@ -15,6 +15,7 @@ import { WhiteboardCanvas } from "@/components/vault/WhiteboardCanvas";
 import { SettingsModal } from "@/components/vault/SettingsModal";
 import { CardCustomizer } from "@/components/vault/CardCustomizer";
 import { MusicPlayer } from "@/components/vault/MusicPlayer";
+import { QuickSearch } from "@/components/vault/QuickSearch";
 import { Button } from "@/components/ui/button";
 import { fontFamilyStack, loadFonts } from "@/lib/fontLoader";
 
@@ -101,6 +102,7 @@ const CharacterPage = () => {
           {savedFlash ? <Save className="h-3 w-3 text-[hsl(var(--rune))]" /> : <Check className="h-3 w-3 text-[hsl(var(--rune))]" />}
           {savedFlash ? "Zapisuję..." : "Zapisano"}
         </div>
+        <QuickSearch characters={db.characters} currentId={id!} />
         <CardCustomizer
           character={character}
           update={update}
