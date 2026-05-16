@@ -1,13 +1,14 @@
-import { BookOpen, ScrollText, Feather, ImagePlus, Library } from "lucide-react";
+import { BookOpen, ScrollText, Feather, ImagePlus, Library, LayoutDashboard } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type TabId = "lore" | "journal" | "manuscript" | "moodboard" | "encyclopedia";
+export type TabId = "lore" | "journal" | "manuscript" | "moodboard" | "encyclopedia" | "whiteboard";
 
 const TABS: { id: TabId; label: string; icon: typeof BookOpen }[] = [
   { id: "lore", label: "Lore", icon: BookOpen },
   { id: "journal", label: "Dziennik", icon: ScrollText },
   { id: "manuscript", label: "Manuskrypt", icon: Feather },
   { id: "moodboard", label: "Moodboard", icon: ImagePlus },
+  { id: "whiteboard", label: "Tablica", icon: LayoutDashboard },
   { id: "encyclopedia", label: "Encyklopedia", icon: Library },
 ];
 

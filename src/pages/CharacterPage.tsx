@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, CSSProperties } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Check, Save } from "lucide-react";
 import { useVaultDB } from "@/hooks/useVaultDB";
@@ -11,15 +11,17 @@ import { JournalTab } from "@/components/vault/JournalTab";
 import { ManuscriptTab } from "@/components/vault/ManuscriptTab";
 import { MoodboardTab } from "@/components/vault/MoodboardTab";
 import { EncyclopediaTab } from "@/components/vault/EncyclopediaTab";
+import { WhiteboardCanvas } from "@/components/vault/WhiteboardCanvas";
 import { SettingsModal } from "@/components/vault/SettingsModal";
 import { CardCustomizer } from "@/components/vault/CardCustomizer";
 import { MusicPlayer } from "@/components/vault/MusicPlayer";
 import { Button } from "@/components/ui/button";
+import { fontFamilyStack, loadFonts } from "@/lib/fontLoader";
 
 const CharacterPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { db, updateCharacter, setDb } = useVaultDB();
+  const { db, updateCharacter, setDb, addCustomPalette, removeCustomPalette } = useVaultDB();
   const character = db.characters.find((c) => c.id === id);
 
   const [tab, setTab] = useState<TabId>("lore");
@@ -29,10 +31,15 @@ const CharacterPage = () => {
   // Per-card palette on document root so global components (modals, popovers) follow.
   useEffect(() => {
     if (character) document.documentElement.dataset.palette = character.palette;
-    return () => {
-      document.documentElement.dataset.palette = "pixel-dark";
-    };
+    return () => { document.documentElement.dataset.palette = "pixel-dark"; };
   }, [character?.palette]);
+
+  // Load all character fonts dynamically.
+  useEffect(() => {
+    if (!character) return;
+    const f = character.fonts ?? { display: character.font, body: "Cormorant Garamond", mono: "JetBrains Mono" };
+    loadFonts([f.display, f.body, f.mono]);
+  }, [character?.fonts?.display, character?.fonts?.body, character?.fonts?.mono]);
 
   // Autosave flash
   useEffect(() => {
@@ -65,11 +72,18 @@ const CharacterPage = () => {
     setTimeout(() => setFocusEntity(null), 2500);
   };
 
+  const f = character.fonts ?? { display: character.font, body: "Cormorant Garamond", mono: "JetBrains Mono" };
+  const fontStyle: CSSProperties = {
+    ["--font-display" as any]: fontFamilyStack(f.display),
+    ["--font-body" as any]: fontFamilyStack(f.body),
+    ["--font-mono" as any]: fontFamilyStack(f.mono),
+  };
+
   return (
     <div
-      className="relative min-h-screen"
-      data-card-anim={character.animation}
-      data-card-font={character.font}
+      className="relative min-h-screen lv-card-scope"
+      data-card-font="custom"
+      style={fontStyle}
     >
       <ParticleCanvas effect={db.settings.effect} />
 
@@ -84,7 +98,13 @@ const CharacterPage = () => {
           {savedFlash ? <Save className="h-3 w-3 text-[hsl(var(--rune))]" /> : <Check className="h-3 w-3 text-[hsl(var(--rune))]" />}
           {savedFlash ? "Zapisuję..." : "Zapisano"}
         </div>
-        <CardCustomizer character={character} update={update} />
+        <CardCustomizer
+          character={character}
+          update={update}
+          customPalettes={db.settings.customPalettes}
+          addCustomPalette={addCustomPalette}
+          removeCustomPalette={removeCustomPalette}
+        />
         <SettingsModal db={db} setDb={setDb} />
       </div>
 
@@ -97,7 +117,10 @@ const CharacterPage = () => {
       </div>
 
       <main className="relative z-10">
-        <Hero state={character} update={update} />
+        {/* Hero gets the per-card animation, NOT the whole page. */}
+        <div data-card-anim={character.animation} className="will-change-transform">
+          <Hero state={character} update={update} />
+        </div>
 
         <div className="container py-10">
           <div className="flex justify-center">
@@ -109,6 +132,13 @@ const CharacterPage = () => {
             {tab === "journal" && <JournalTab state={character} update={update} />}
             {tab === "manuscript" && <ManuscriptTab state={character} update={update} />}
             {tab === "moodboard" && <MoodboardTab state={character} update={update} />}
+            {tab === "whiteboard" && (
+              <WhiteboardCanvas
+                board={character.whiteboard ?? { notes: [], strokes: [] }}
+                onChange={(next) => update({ whiteboard: next })}
+                title={`Tablica · ${character.name}`}
+              />
+            )}
             {tab === "encyclopedia" && (
               <EncyclopediaTab state={character} update={update} focusName={focusEntity} />
             )}
