@@ -1,15 +1,16 @@
-import { BookOpen, ScrollText, Feather, ImagePlus, Library, LayoutDashboard } from "lucide-react";
+import { BookOpen, ScrollText, Feather, ImagePlus, Library, LayoutDashboard, GalleryHorizontalEnd } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useLang } from "@/hooks/useLang";
 import { t } from "@/lib/i18n";
 
-export type TabId = "lore" | "journal" | "manuscript" | "moodboard" | "encyclopedia" | "whiteboard";
+export type TabId = "lore" | "journal" | "manuscript" | "moodboard" | "gallery" | "encyclopedia" | "whiteboard";
 
 const TAB_IDS: { id: TabId; key: Parameters<typeof t>[0]; icon: typeof BookOpen }[] = [
   { id: "lore",         key: "tab.lore",         icon: BookOpen },
   { id: "journal",      key: "tab.journal",       icon: ScrollText },
   { id: "manuscript",   key: "tab.manuscript",    icon: Feather },
   { id: "moodboard",    key: "tab.moodboard",     icon: ImagePlus },
+  { id: "gallery",      key: "tab.gallery",       icon: GalleryHorizontalEnd },
   { id: "whiteboard",   key: "tab.whiteboard",    icon: LayoutDashboard },
   { id: "encyclopedia", key: "tab.encyclopedia",  icon: Library },
 ];

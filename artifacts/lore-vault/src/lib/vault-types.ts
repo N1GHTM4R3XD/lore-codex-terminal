@@ -32,6 +32,13 @@ export interface MoodImage {
   caption?: string;
 }
 
+export interface GalleryImage {
+  id: string;
+  url: string;         // HTTP URL or data: URI (file upload)
+  title?: string;      // optional caption shown on hover
+  category?: string;   // optional tag: "ref" | "illo" | "sketch" | custom
+}
+
 /** A simple whiteboard note (sticky). */
 export interface BoardNote {
   id: string;
@@ -130,6 +137,7 @@ export interface Character {
   journal: JournalEntry[];
   entities: Entity[];
   moodboard: MoodImage[];
+  gallery: GalleryImage[];
   whiteboard: Whiteboard;
 
   // Per-card customization
@@ -170,6 +178,7 @@ const makeChar = (over: Partial<Character>): Character => ({
   journal: [],
   entities: [],
   moodboard: [],
+  gallery: [],
   whiteboard: emptyBoard(),
   palette: "pixel-dark",
   animation: "none",
@@ -287,6 +296,7 @@ export function migrateDB(db: any): VaultDB {
   if (!db || typeof db !== "object") return DEFAULT_DB;
   const characters = (db.characters ?? []).map((c: any) => ({
     ...c,
+    gallery: c.gallery ?? [],
     whiteboard: c.whiteboard ?? emptyBoard(),
     animation: ANIM_MIGRATE[c.animation as string] ?? (c.animation as CardAnimation) ?? "none",
     fonts:

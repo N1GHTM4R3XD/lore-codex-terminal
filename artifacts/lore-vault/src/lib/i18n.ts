@@ -8,6 +8,7 @@ const T = {
   "tab.moodboard":    { pl: "Moodboard",   en: "Moodboard" },
   "tab.whiteboard":   { pl: "Tablica",     en: "Board" },
   "tab.encyclopedia": { pl: "Encyklopedia",en: "Encyclopedia" },
+  "tab.gallery":      { pl: "Galeria",     en: "Gallery" },
 
   // LoreTab
   "lore.title":       { pl: "Kodeks Lore",  en: "Lore Codex" },

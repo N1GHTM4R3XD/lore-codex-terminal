@@ -11,6 +11,7 @@ import { JournalTab } from "@/components/vault/JournalTab";
 import { ManuscriptTab } from "@/components/vault/ManuscriptTab";
 import { MoodboardTab } from "@/components/vault/MoodboardTab";
 import { EncyclopediaTab } from "@/components/vault/EncyclopediaTab";
+import { GalleryTab } from "@/components/vault/GalleryTab";
 import { WhiteboardCanvas } from "@/components/vault/WhiteboardCanvas";
 import { SettingsModal } from "@/components/vault/SettingsModal";
 import { CardCustomizer } from "@/components/vault/CardCustomizer";
@@ -134,6 +135,7 @@ const CharacterPage = () => {
             {tab === "journal" && <JournalTab state={character} update={update} />}
             {tab === "manuscript" && <ManuscriptTab state={character} update={update} />}
             {tab === "moodboard" && <MoodboardTab state={character} update={update} />}
+            {tab === "gallery" && <GalleryTab state={character} update={update} />}
             {tab === "whiteboard" && (
               <WhiteboardCanvas
                 board={character.whiteboard ?? { notes: [], strokes: [] }}
