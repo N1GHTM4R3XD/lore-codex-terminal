@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { LayoutDashboard, Plus, Trash2, Image as ImageIcon, Pencil, Hand, Eraser, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,13 +9,14 @@ interface Props {
   board: Whiteboard;
   onChange: (next: Whiteboard) => void;
   title?: string;
+  hideHeader?: boolean;
 }
 
 type Tool = "pan" | "draw" | "erase";
 
 const STICKY_COLORS = ["#f7d774", "#e89a9a", "#a8d8a0", "#8fc4d8", "#cfa8e0", "#f0c89e"];
 
-export const WhiteboardCanvas = ({ board, onChange, title = "Tablica" }: Props) => {
+export const WhiteboardCanvas = ({ board, onChange, title = "Tablica", hideHeader }: Props) => {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [tool, setTool] = useState<Tool>("pan");
@@ -25,7 +26,6 @@ export const WhiteboardCanvas = ({ board, onChange, title = "Tablica" }: Props) 
   const draggingRef = useRef<{ id: string; ox: number; oy: number } | null>(null);
   const [dims, setDims] = useState({ w: 1200, h: 800 });
 
-  // Compute canvas size from container
   useEffect(() => {
     const el = wrapRef.current;
     if (!el) return;
@@ -37,8 +37,7 @@ export const WhiteboardCanvas = ({ board, onChange, title = "Tablica" }: Props) 
     return () => ro.disconnect();
   }, []);
 
-  // Repaint strokes
-  useEffect(() => {
+  const fullRepaint = useCallback(() => {
     const c = canvasRef.current;
     if (!c) return;
     const dpr = window.devicePixelRatio || 1;
@@ -63,6 +62,8 @@ export const WhiteboardCanvas = ({ board, onChange, title = "Tablica" }: Props) 
     });
   }, [board.strokes, dims.w, dims.h]);
 
+  useEffect(() => { fullRepaint(); }, [fullRepaint]);
+
   const localXY = (e: React.PointerEvent) => {
     const r = wrapRef.current!.getBoundingClientRect();
     return { x: e.clientX - r.left, y: e.clientY - r.top };
@@ -72,33 +73,62 @@ export const WhiteboardCanvas = ({ board, onChange, title = "Tablica" }: Props) 
     if (tool === "draw" || tool === "erase") {
       (e.target as Element).setPointerCapture?.(e.pointerId);
       const { x, y } = localXY(e);
+      if (tool === "erase") {
+        const next = board.strokes.filter((s) => !pointNearStroke(s, x, y, size * 6));
+        if (next.length !== board.strokes.length) onChange({ ...board, strokes: next });
+        return;
+      }
       drawingRef.current = {
         id: crypto.randomUUID(),
-        color: tool === "erase" ? "rgba(0,0,0,0)" : color,
-        size: tool === "erase" ? size * 6 : size,
+        color,
+        size,
         points: [x, y],
       };
-      // for erase we use compositing - simpler: remove strokes intersecting
-      if (tool === "erase") {
-        const tx = x, ty = y;
-        const next = board.strokes.filter((s) => !pointNearStroke(s, tx, ty, size * 6));
-        if (next.length !== board.strokes.length) onChange({ ...board, strokes: next });
-        drawingRef.current = null;
-      }
     }
   };
+
   const onPointerMove = (e: React.PointerEvent) => {
-    if (!drawingRef.current) return;
     const { x, y } = localXY(e);
-    drawingRef.current.points.push(x, y);
-    // re-render via state nudge
-    setDims((d) => ({ ...d }));
+
+    if (drawingRef.current) {
+      const pts = drawingRef.current.points;
+      const prevX = pts[pts.length - 2];
+      const prevY = pts[pts.length - 1];
+      drawingRef.current.points.push(x, y);
+
+      const c = canvasRef.current;
+      if (c && prevX !== undefined) {
+        const ctx = c.getContext("2d");
+        if (ctx) {
+          ctx.lineCap = "round";
+          ctx.lineJoin = "round";
+          ctx.strokeStyle = drawingRef.current.color;
+          ctx.lineWidth = drawingRef.current.size;
+          ctx.beginPath();
+          ctx.moveTo(prevX, prevY);
+          ctx.lineTo(x, y);
+          ctx.stroke();
+        }
+      }
+    }
+
+    if (draggingRef.current) {
+      const d = draggingRef.current;
+      onChange({
+        ...board,
+        notes: board.notes.map((n) =>
+          n.id === d.id ? { ...n, x: Math.max(0, x - d.ox), y: Math.max(0, y - d.oy) } : n
+        ),
+      });
+    }
   };
+
   const onPointerUp = () => {
     if (drawingRef.current && drawingRef.current.points.length > 2) {
       onChange({ ...board, strokes: [...board.strokes, drawingRef.current] });
     }
     drawingRef.current = null;
+    draggingRef.current = null;
   };
 
   const addNote = (extra?: Partial<BoardNote>) => {
@@ -134,13 +164,6 @@ export const WhiteboardCanvas = ({ board, onChange, title = "Tablica" }: Props) 
     draggingRef.current = { id: n.id, ox: x - n.x, oy: y - n.y };
     (e.target as Element).setPointerCapture?.(e.pointerId);
   };
-  const noteMove = (e: React.PointerEvent) => {
-    if (!draggingRef.current) return;
-    const d = draggingRef.current;
-    const { x, y } = localXY(e);
-    updateNote(d.id, { x: Math.max(0, x - d.ox), y: Math.max(0, y - d.oy) });
-  };
-  const noteUp = () => { draggingRef.current = null; };
 
   const clearBoard = useCallback(() => {
     if (confirm("Wyczyścić całą tablicę?")) onChange({ notes: [], strokes: [] });
@@ -148,53 +171,47 @@ export const WhiteboardCanvas = ({ board, onChange, title = "Tablica" }: Props) 
 
   return (
     <section className="space-y-4">
-      <header className="flex items-center justify-between flex-wrap gap-3">
-        <h2 className="font-display text-2xl flex items-center gap-2">
-          <LayoutDashboard className="h-5 w-5 text-[hsl(var(--rune))]" />
-          {title}
-        </h2>
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="vault-panel rounded-full p-1 flex">
-            {([
-              { id: "pan", icon: Hand, label: "Przesuwaj" },
-              { id: "draw", icon: Pencil, label: "Rysuj" },
-              { id: "erase", icon: Eraser, label: "Wymaż" },
-            ] as { id: Tool; icon: typeof Hand; label: string }[]).map(({ id, icon: Icon, label }) => (
-              <button
-                key={id}
-                onClick={() => setTool(id)}
-                title={label}
-                aria-pressed={tool === id}
-                className={cn(
-                  "h-8 w-8 grid place-items-center rounded-full transition",
-                  tool === id ? "bg-[hsl(var(--rune))] text-[hsl(var(--primary-foreground))]" : "text-muted-foreground hover:text-[hsl(var(--rune))]",
-                )}
-              >
-                <Icon className="h-4 w-4" />
-              </button>
-            ))}
+      {!hideHeader && (
+        <header className="flex items-center justify-between flex-wrap gap-3">
+          <h2 className="font-display text-2xl flex items-center gap-2">
+            <LayoutDashboard className="h-5 w-5 text-[hsl(var(--rune))]" />
+            {title}
+          </h2>
+          <div className="flex flex-wrap items-center gap-2">
+            <ToolBar
+              tool={tool}
+              setTool={setTool}
+              color={color}
+              setColor={setColor}
+              size={size}
+              setSize={setSize}
+              onAddNote={() => addNote()}
+              onAddImage={addImage}
+              onClear={clearBoard}
+            />
           </div>
-          {tool === "draw" && (
-            <div className="flex items-center gap-1">
-              <input type="color" value={color} onChange={(e) => setColor(e.target.value)} className="h-8 w-8 rounded border border-border bg-transparent cursor-pointer" />
-              <Input type="number" min={1} max={20} value={size} onChange={(e) => setSize(+e.target.value || 1)} className="w-16 font-mono text-xs" />
-            </div>
-          )}
-          <Button size="sm" variant="outline" onClick={() => addNote()} className="font-mono uppercase text-xs">
-            <Plus className="h-3.5 w-3.5 mr-1.5" />Notatka
-          </Button>
-          <Button size="sm" variant="outline" onClick={addImage} className="font-mono uppercase text-xs">
-            <ImageIcon className="h-3.5 w-3.5 mr-1.5" />Obraz
-          </Button>
-          <Button size="sm" variant="destructive" onClick={clearBoard} className="font-mono uppercase text-xs">
-            <Trash2 className="h-3.5 w-3.5 mr-1.5" />Wyczyść
-          </Button>
+        </header>
+      )}
+
+      {hideHeader && (
+        <div className="flex flex-wrap items-center gap-2">
+          <ToolBar
+            tool={tool}
+            setTool={setTool}
+            color={color}
+            setColor={setColor}
+            size={size}
+            setSize={setSize}
+            onAddNote={() => addNote()}
+            onAddImage={addImage}
+            onClear={clearBoard}
+          />
         </div>
-      </header>
+      )}
 
       <div
         ref={wrapRef}
-        className="vault-panel relative w-full h-[70vh] overflow-hidden select-none"
+        className="vault-panel relative w-full h-[65vh] overflow-hidden select-none"
         style={{
           backgroundImage:
             "linear-gradient(hsl(var(--border)/0.3) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--border)/0.3) 1px, transparent 1px)",
@@ -202,13 +219,12 @@ export const WhiteboardCanvas = ({ board, onChange, title = "Tablica" }: Props) 
           cursor: tool === "draw" ? "crosshair" : tool === "erase" ? "cell" : "default",
         }}
         onPointerDown={onPointerDown}
-        onPointerMove={(e) => { onPointerMove(e); noteMove(e); }}
-        onPointerUp={(e) => { onPointerUp(); noteUp(); }}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerLeave={onPointerUp}
       >
-        <canvas
-          ref={canvasRef}
-          className={cn("absolute inset-0 pointer-events-none", tool === "pan" ? "" : "")}
-        />
+        <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none" />
+
         {board.notes.map((n) => (
           <article
             key={n.id}
@@ -222,6 +238,7 @@ export const WhiteboardCanvas = ({ board, onChange, title = "Tablica" }: Props) 
               background: n.color,
               color: n.imageUrl ? "white" : "#1a1714",
               cursor: tool === "pan" ? "grab" : "default",
+              zIndex: 10,
             }}
             onPointerDown={(e) => noteDown(e, n)}
           >
@@ -234,6 +251,7 @@ export const WhiteboardCanvas = ({ board, onChange, title = "Tablica" }: Props) 
               className="w-full bg-transparent border-0 focus:outline-none p-2 resize-none font-handwritten text-base"
               style={{ minHeight: 80 }}
               placeholder="Notatka…"
+              onPointerDown={(e) => e.stopPropagation()}
             />
             <button
               onClick={(e) => { e.stopPropagation(); removeNote(n.id); }}
@@ -247,7 +265,7 @@ export const WhiteboardCanvas = ({ board, onChange, title = "Tablica" }: Props) 
 
         {board.notes.length === 0 && board.strokes.length === 0 && (
           <div className="absolute inset-0 grid place-items-center pointer-events-none">
-            <p className="font-mono text-xs uppercase tracking-[0.4em] text-muted-foreground">
+            <p className="font-mono text-xs uppercase tracking-[0.4em] text-muted-foreground opacity-60">
               Pusta tablica — dodaj notatkę, narysuj lub wklej obraz
             </p>
           </div>
@@ -260,6 +278,56 @@ export const WhiteboardCanvas = ({ board, onChange, title = "Tablica" }: Props) 
     </section>
   );
 };
+
+function ToolBar({
+  tool, setTool, color, setColor, size, setSize,
+  onAddNote, onAddImage, onClear,
+}: {
+  tool: Tool; setTool: (t: Tool) => void;
+  color: string; setColor: (c: string) => void;
+  size: number; setSize: (s: number) => void;
+  onAddNote: () => void; onAddImage: () => void; onClear: () => void;
+}) {
+  return (
+    <>
+      <div className="vault-panel rounded-full p-1 flex">
+        {([
+          { id: "pan", icon: Hand, label: "Przesuwaj" },
+          { id: "draw", icon: Pencil, label: "Rysuj" },
+          { id: "erase", icon: Eraser, label: "Wymaż" },
+        ] as { id: Tool; icon: typeof Hand; label: string }[]).map(({ id, icon: Icon, label }) => (
+          <button
+            key={id}
+            onClick={() => setTool(id)}
+            title={label}
+            aria-pressed={tool === id}
+            className={cn(
+              "h-8 w-8 grid place-items-center rounded-full transition",
+              tool === id ? "bg-[hsl(var(--rune))] text-[hsl(var(--primary-foreground))]" : "text-muted-foreground hover:text-[hsl(var(--rune))]",
+            )}
+          >
+            <Icon className="h-4 w-4" />
+          </button>
+        ))}
+      </div>
+      {tool === "draw" && (
+        <div className="flex items-center gap-1">
+          <input type="color" value={color} onChange={(e) => setColor(e.target.value)} className="h-8 w-8 rounded border border-border bg-transparent cursor-pointer" title="Kolor" />
+          <Input type="number" min={1} max={20} value={size} onChange={(e) => setSize(+e.target.value || 1)} className="w-14 font-mono text-xs" title="Grubość" />
+        </div>
+      )}
+      <Button size="sm" variant="outline" onClick={onAddNote} className="font-mono uppercase text-xs">
+        <Plus className="h-3.5 w-3.5 mr-1" />Notatka
+      </Button>
+      <Button size="sm" variant="outline" onClick={onAddImage} className="font-mono uppercase text-xs">
+        <ImageIcon className="h-3.5 w-3.5 mr-1" />Obraz
+      </Button>
+      <Button size="sm" variant="destructive" onClick={onClear} className="font-mono uppercase text-xs">
+        <Trash2 className="h-3.5 w-3.5 mr-1" />Wyczyść
+      </Button>
+    </>
+  );
+}
 
 function pointNearStroke(s: BoardStroke, x: number, y: number, r: number): boolean {
   for (let i = 0; i < s.points.length; i += 2) {

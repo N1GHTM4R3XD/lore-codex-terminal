@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useLocalStorage } from "./useLocalStorage";
-import { Character, DEFAULT_DB, VaultDB, newCharacter, migrateDB, Whiteboard, CustomPalette, World, Connection } from "@/lib/vault-types";
+import { Character, DEFAULT_DB, VaultDB, newCharacter, migrateDB, Whiteboard, CustomPalette, World, Connection, Folder, NamedWhiteboard } from "@/lib/vault-types";
 import { applyCustomPaletteStyles } from "@/lib/paletteUtils";
 
 export function useVaultDB() {
@@ -69,6 +69,47 @@ export function useVaultDB() {
   const deleteConnection = (id: string) =>
     setDb({ ...db, connections: (db.connections ?? []).filter((c) => c.id !== id) });
 
+  const addFolder = (name: string, color = "#cf9d7b"): Folder => {
+    const created: Folder = { id: `folder_${Date.now().toString(36)}`, name, color, characterIds: [] };
+    setDb({ ...db, folders: [...(db.folders ?? []), created] });
+    return created;
+  };
+
+  const updateFolder = (id: string, patch: Partial<Folder>) =>
+    setDb({ ...db, folders: (db.folders ?? []).map((f) => (f.id === id ? { ...f, ...patch } : f)) });
+
+  const deleteFolder = (id: string) =>
+    setDb({ ...db, folders: (db.folders ?? []).filter((f) => f.id !== id) });
+
+  const toggleCharInFolder = (folderId: string, charId: string) => {
+    const folder = (db.folders ?? []).find((f) => f.id === folderId);
+    if (!folder) return;
+    const charIds = folder.characterIds.includes(charId)
+      ? folder.characterIds.filter((id) => id !== charId)
+      : [...folder.characterIds, charId];
+    updateFolder(folderId, { characterIds: charIds });
+  };
+
+  const addNamedBoard = (name: string, category?: string): NamedWhiteboard => {
+    const created: NamedWhiteboard = {
+      id: `board_${Date.now().toString(36)}`,
+      name,
+      category,
+      board: { notes: [], strokes: [] },
+    };
+    setDb({ ...db, namedBoards: [...(db.namedBoards ?? []), created] });
+    return created;
+  };
+
+  const updateNamedBoard = (id: string, patch: Partial<NamedWhiteboard>) =>
+    setDb({ ...db, namedBoards: (db.namedBoards ?? []).map((b) => (b.id === id ? { ...b, ...patch } : b)) });
+
+  const setNamedBoardContent = (id: string, board: Whiteboard) =>
+    updateNamedBoard(id, { board });
+
+  const deleteNamedBoard = (id: string) =>
+    setDb({ ...db, namedBoards: (db.namedBoards ?? []).filter((b) => b.id !== id) });
+
   return {
     db,
     updateCharacter,
@@ -83,6 +124,14 @@ export function useVaultDB() {
     deleteWorld,
     addConnection,
     deleteConnection,
+    addFolder,
+    updateFolder,
+    deleteFolder,
+    toggleCharInFolder,
+    addNamedBoard,
+    updateNamedBoard,
+    setNamedBoardContent,
+    deleteNamedBoard,
     setDb,
   };
 }

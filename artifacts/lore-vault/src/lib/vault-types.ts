@@ -90,6 +90,21 @@ export interface CustomPalette {
   foreground: string;
 }
 
+export interface Folder {
+  id: string;
+  name: string;
+  color: string;
+  characterIds: string[];
+  collapsed?: boolean;
+}
+
+export interface NamedWhiteboard {
+  id: string;
+  name: string;
+  category?: string;
+  board: Whiteboard;
+}
+
 export type ConnectionNodeType = "character" | "world";
 
 export interface Connection {
@@ -145,6 +160,8 @@ export interface VaultDB {
   worldBoard: Whiteboard;
   worlds: World[];
   connections: Connection[];
+  folders: Folder[];
+  namedBoards: NamedWhiteboard[];
   settings: {
     effect: Effect;
     customPalettes: CustomPalette[];
@@ -255,6 +272,8 @@ export const DEFAULT_DB: VaultDB = {
   worldBoard: emptyBoard(),
   worlds: [],
   connections: [],
+  folders: [],
+  namedBoards: [],
   settings: { effect: "embers", customPalettes: [] },
 };
 
@@ -291,6 +310,8 @@ export function migrateDB(db: any): VaultDB {
     worldBoard: db.worldBoard ?? emptyBoard(),
     worlds: db.worlds ?? [],
     connections: db.connections ?? [],
+    folders: db.folders ?? [],
+    namedBoards: db.namedBoards ?? [],
     settings: {
       effect: db.settings?.effect ?? "embers",
       customPalettes: db.settings?.customPalettes ?? [],
