@@ -12,7 +12,7 @@ import { ManuscriptTab } from "@/components/vault/ManuscriptTab";
 import { MoodboardTab } from "@/components/vault/MoodboardTab";
 import { EncyclopediaTab } from "@/components/vault/EncyclopediaTab";
 import { GalleryTab } from "@/components/vault/GalleryTab";
-import { WhiteboardCanvas } from "@/components/vault/WhiteboardCanvas";
+import { NamedWhiteboardsTab } from "@/components/vault/NamedWhiteboardsTab";
 import { SettingsModal } from "@/components/vault/SettingsModal";
 import { CardCustomizer } from "@/components/vault/CardCustomizer";
 import { MusicPlayer } from "@/components/vault/MusicPlayer";
@@ -138,11 +138,7 @@ const CharacterPage = () => {
             {tab === "moodboard" && <MoodboardTab state={character} update={update} />}
             {tab === "gallery" && <GalleryTab state={character} update={update} />}
             {tab === "whiteboard" && (
-              <WhiteboardCanvas
-                board={character.whiteboard ?? { notes: [], strokes: [] }}
-                onChange={(next) => update({ whiteboard: next })}
-                title={`Tablica · ${character.name}`}
-              />
+              <NamedWhiteboardsTab state={character} update={update} />
             )}
             {tab === "encyclopedia" && (
               <EncyclopediaTab state={character} update={update} focusName={focusEntity} />

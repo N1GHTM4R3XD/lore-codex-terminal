@@ -77,6 +77,13 @@ export interface Whiteboard {
   bgPatternColor?: string;
 }
 
+/** A single named chapter inside a character's manuscript. */
+export interface ManuscriptChapter {
+  id: string;
+  name: string;
+  content: string;
+}
+
 /** Per-character display fonts. Each is a Google Font family name. */
 export interface CardFonts {
   display: string;  // headings / name
@@ -169,6 +176,8 @@ export interface Character {
   frame: FrameStyle;
   avatarBorder?: AvatarBorderStyle;
   bgOpacity?: number;           // 0–100, how visible background image is; default 65
+  manuscriptChapters?: ManuscriptChapter[];   // named chapters; falls back to `manuscript`
+  whiteboards?: NamedWhiteboard[];            // named boards; falls back to `whiteboard`
   /** Back-compat: legacy single font theme. Used as display if `fonts` missing. */
   font: FontTheme;
   fonts?: CardFonts;
