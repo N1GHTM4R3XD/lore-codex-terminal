@@ -3,29 +3,366 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft, Globe, Users, Plus, BookOpen, Image as ImageIcon,
   Scroll, Layers, LayoutDashboard, Eye, Pencil, Trash2,
-  X, Settings, Music, Check, Save,
+  X, Settings, Music, Check, Heart,
 } from "lucide-react";
 import { useVaultDB } from "@/hooks/useVaultDB";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Character, Entity, MoodImage, World, WorldHistoryEntry, Whiteboard } from "@/lib/vault-types";
+import { Character, Connection, Entity, World, WorldHistoryEntry, Whiteboard } from "@/lib/vault-types";
 import { WhiteboardCanvas } from "@/components/vault/WhiteboardCanvas";
 import { MusicPlayer } from "@/components/vault/MusicPlayer";
 import { renderLore } from "@/lib/loreParser";
 import { cn } from "@/lib/utils";
 
 /* ── Tab types ─────────────────────────────────────────────── */
-type WorldTab = "kronika" | "encyklopedia" | "historia" | "moodboard" | "tablica" | "postacie";
+type WorldTab = "kronika" | "encyklopedia" | "historia" | "moodboard" | "tablica" | "postacie" | "wiezi";
 
 const TABS: { id: WorldTab; label: string; icon: React.ElementType }[] = [
   { id: "kronika",      label: "Kronika",      icon: BookOpen },
+  { id: "wiezi",        label: "Więzi",        icon: Heart },
   { id: "encyklopedia", label: "Encyklopedia", icon: Layers },
   { id: "historia",     label: "Historia",     icon: Scroll },
   { id: "moodboard",    label: "Moodboard",    icon: ImageIcon },
   { id: "tablica",      label: "Tablica",      icon: LayoutDashboard },
   { id: "postacie",     label: "Postacie",     icon: Users },
 ];
+
+/* ── Więzi (Bonds) tab ───────────────────────────────────────── */
+const RELATION_PRESETS = [
+  { label: "Przyjaciel", color: "#a8d8a0", symbol: "🤝" },
+  { label: "Wróg",       color: "#e89a9a", symbol: "⚔️" },
+  { label: "Partner",    color: "#cfa8e0", symbol: "💜" },
+  { label: "Rywal",      color: "#f7d774", symbol: "🔥" },
+  { label: "Mentor",     color: "#8fc4d8", symbol: "📖" },
+  { label: "Uczeń",      color: "#8fc4d8", symbol: "✏️" },
+  { label: "Rodzina",    color: "#cf9d7b", symbol: "🏠" },
+  { label: "Sojusznik",  color: "#a8d8a0", symbol: "🛡️" },
+  { label: "Nemezis",    color: "#e89a9a", symbol: "💀" },
+  { label: "Tajemnica",  color: "#cfa8e0", symbol: "🔮" },
+];
+
+function CharPortrait({ char, isDragOver, onDragStart, onDragOver, onDragLeave, onDrop }: {
+  char: Character;
+  isDragOver: boolean;
+  onDragStart: () => void;
+  onDragOver: (e: React.DragEvent) => void;
+  onDragLeave: () => void;
+  onDrop: () => void;
+}) {
+  return (
+    <div
+      draggable
+      onDragStart={onDragStart}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+      className={cn(
+        "vault-panel p-3 flex flex-col items-center gap-2 cursor-grab active:cursor-grabbing transition-all select-none",
+        isDragOver
+          ? "border-[hsl(var(--rune))] bg-[hsl(var(--rune)/0.1)] scale-105 shadow-[0_0_16px_hsl(var(--rune)/0.4)]"
+          : "hover:border-border/80"
+      )}
+      title={`Przeciągnij ${char.name} na inną postać, aby dodać relację`}
+    >
+      {char.avatar
+        ? <img src={char.avatar} alt={char.name} className="h-16 w-16 rounded-full object-cover border-2 border-border pointer-events-none" />
+        : <div className="h-16 w-16 rounded-full bg-muted border-2 border-border grid place-items-center pointer-events-none">
+            <Users className="h-6 w-6 text-muted-foreground" />
+          </div>
+      }
+      <p className="font-display text-sm text-center leading-tight max-w-[80px] truncate">{char.name}</p>
+      <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground opacity-60 pointer-events-none">
+        ↕ przeciągnij
+      </p>
+    </div>
+  );
+}
+
+function RelationPickerModal({ fromChar, toChar, onConfirm, onCancel }: {
+  fromChar: Character;
+  toChar: Character;
+  onConfirm: (label: string, color: string) => void;
+  onCancel: () => void;
+}) {
+  const [custom, setCustom] = useState("");
+  const [selectedColor, setSelectedColor] = useState(RELATION_PRESETS[0].color);
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-background/80 backdrop-blur-sm" onClick={onCancel}>
+      <div className="vault-panel p-6 max-w-sm w-full mx-4 space-y-4 animate-fade-in" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center gap-3">
+          {fromChar.avatar
+            ? <img src={fromChar.avatar} alt="" className="h-10 w-10 rounded-full object-cover flex-shrink-0" />
+            : <div className="h-10 w-10 rounded-full bg-muted grid place-items-center flex-shrink-0"><Users className="h-4 w-4 text-muted-foreground" /></div>
+          }
+          <div className="flex-1 text-center font-mono text-[10px] uppercase tracking-widest text-[hsl(var(--rune))]">→ Relacja →</div>
+          {toChar.avatar
+            ? <img src={toChar.avatar} alt="" className="h-10 w-10 rounded-full object-cover flex-shrink-0" />
+            : <div className="h-10 w-10 rounded-full bg-muted grid place-items-center flex-shrink-0"><Users className="h-4 w-4 text-muted-foreground" /></div>
+          }
+        </div>
+        <p className="text-center text-sm font-mono text-muted-foreground">
+          <span className="text-foreground">{fromChar.name}</span>
+          {" → "}
+          <span className="text-foreground">{toChar.name}</span>
+        </p>
+
+        <div className="space-y-2">
+          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Wybierz preset:</p>
+          <div className="grid grid-cols-2 gap-1.5">
+            {RELATION_PRESETS.map((p) => (
+              <button
+                key={p.label}
+                onClick={() => onConfirm(p.label, p.color)}
+                className="flex items-center gap-2 px-2.5 py-2 rounded border border-border hover:border-[hsl(var(--rune)/0.5)] text-sm font-mono transition-colors hover:bg-[hsl(var(--rune)/0.05)] text-left"
+              >
+                <span className="text-base leading-none">{p.symbol}</span>
+                <span className="truncate">{p.label}</span>
+                <span className="ml-auto h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ background: p.color }} />
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-2 border-t border-border pt-3">
+          <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">…lub własna etykieta:</p>
+          <div className="flex gap-2">
+            <Input
+              value={custom}
+              onChange={(e) => setCustom(e.target.value)}
+              placeholder="np. Zdradzona miłość…"
+              className="h-8 text-sm flex-1"
+              onKeyDown={(e) => { if (e.key === "Enter" && custom.trim()) onConfirm(custom.trim(), selectedColor); }}
+            />
+            <div className="flex gap-1">
+              {["#cf9d7b", "#8fc4d8", "#cfa8e0", "#a8d8a0", "#e89a9a", "#f7d774"].map((c) => (
+                <button key={c} onClick={() => setSelectedColor(c)}
+                  className="h-8 w-8 rounded border-2 flex-shrink-0 transition-all"
+                  style={{ background: c, borderColor: selectedColor === c ? "white" : "transparent" }} />
+              ))}
+            </div>
+          </div>
+          <Button size="sm" onClick={() => custom.trim() && onConfirm(custom.trim(), selectedColor)}
+            disabled={!custom.trim()} className="w-full font-mono uppercase text-xs">
+            Utwórz relację
+          </Button>
+        </div>
+
+        <button onClick={onCancel}
+          className="absolute top-3 right-3 text-muted-foreground hover:text-foreground">
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function WorldConnectionGraph({ chars, connections }: { chars: Character[]; connections: Connection[] }) {
+  if (chars.length < 2) return null;
+
+  const W = 600;
+  const H = 300;
+  const CX = W / 2;
+  const CY = H / 2;
+  const R_orbit = Math.min(CX, CY) - 52;
+  const R_node = 24;
+  const [hovered, setHovered] = useState<string | null>(null);
+
+  const positions = chars.map((c, i) => {
+    const angle = (2 * Math.PI * i) / chars.length - Math.PI / 2;
+    return { ...c, x: CX + R_orbit * Math.cos(angle), y: CY + R_orbit * Math.sin(angle) };
+  });
+  const getPos = (id: string) => positions.find((p) => p.id === id);
+
+  const relevantConns = connections.filter(
+    (c) => c.fromType === "character" && c.toType === "character" &&
+      chars.some((ch) => ch.id === c.fromId) && chars.some((ch) => ch.id === c.toId)
+  );
+
+  return (
+    <div className="vault-panel p-4 overflow-x-auto">
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ minWidth: 360, height: H }}>
+        <defs>
+          <marker id="wiezArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" opacity="0.6" />
+          </marker>
+        </defs>
+
+        {relevantConns.map((conn) => {
+          const from = getPos(conn.fromId);
+          const to = getPos(conn.toId);
+          if (!from || !to) return null;
+          const mx = (from.x + to.x) / 2;
+          const my = (from.y + to.y) / 2;
+          const color = conn.color ?? "#cf9d7b";
+          const isHov = hovered === conn.id;
+          return (
+            <g key={conn.id}>
+              <line x1={from.x} y1={from.y} x2={to.x} y2={to.y}
+                stroke={color} strokeWidth={isHov ? 2.5 : 1.5} strokeDasharray="4,3"
+                opacity={isHov ? 1 : 0.55} />
+              <text x={mx} y={my - 5} textAnchor="middle" fontSize="9"
+                fontFamily="JetBrains Mono, monospace" fill={color} opacity="0.9">
+                {conn.label}
+              </text>
+              <circle cx={mx} cy={my} r="10" fill="transparent" style={{ cursor: "pointer" }}
+                onMouseEnter={() => setHovered(conn.id)}
+                onMouseLeave={() => setHovered(null)} />
+            </g>
+          );
+        })}
+
+        {positions.map((n) => (
+          <g key={n.id}>
+            <circle cx={n.x} cy={n.y} r={R_node} fill="hsl(28,14%,10%)"
+              stroke="hsl(var(--rune))" strokeWidth="1.5" />
+            {n.avatar ? (
+              <image href={n.avatar} x={n.x - R_node + 2} y={n.y - R_node + 2}
+                width={(R_node - 2) * 2} height={(R_node - 2) * 2}
+                clipPath={`circle(${R_node - 2}px at ${R_node - 2}px ${R_node - 2}px)`}
+                preserveAspectRatio="xMidYMid slice" />
+            ) : (
+              <text x={n.x} y={n.y + 5} textAnchor="middle" fontSize="16" fill="hsl(var(--rune))" opacity="0.5">✦</text>
+            )}
+            <text x={n.x} y={n.y + R_node + 12} textAnchor="middle" fontSize="9"
+              fontFamily="JetBrains Mono, monospace" fill="hsl(var(--foreground))" opacity="0.8">
+              {n.name.length > 12 ? n.name.slice(0, 10) + "…" : n.name}
+            </text>
+          </g>
+        ))}
+      </svg>
+      {relevantConns.length === 0 && (
+        <p className="text-center font-mono text-[10px] uppercase tracking-widest text-muted-foreground mt-2 opacity-50">
+          Przeciągnij postać na postać poniżej, aby dodać relację
+        </p>
+      )}
+    </div>
+  );
+}
+
+function WięziTab({ world, chars, allConnections, onAdd, onDelete }: {
+  world: World;
+  chars: Character[];
+  allConnections: Connection[];
+  onAdd: (c: Omit<Connection, "id">) => void;
+  onDelete: (id: string) => void;
+}) {
+  const [dragSource, setDragSource] = useState<string | null>(null);
+  const [dragTarget, setDragTarget] = useState<string | null>(null);
+  const [pending, setPending] = useState<{ from: Character; to: Character } | null>(null);
+
+  const worldConns = allConnections.filter(
+    (c) =>
+      c.fromType === "character" && c.toType === "character" &&
+      chars.some((ch) => ch.id === c.fromId) &&
+      chars.some((ch) => ch.id === c.toId),
+  );
+
+  const handleDrop = (targetId: string) => {
+    if (!dragSource || dragSource === targetId) { setDragSource(null); setDragTarget(null); return; }
+    const from = chars.find((c) => c.id === dragSource);
+    const to = chars.find((c) => c.id === targetId);
+    if (from && to) setPending({ from, to });
+    setDragSource(null);
+    setDragTarget(null);
+  };
+
+  const confirmRelation = (label: string, color: string) => {
+    if (!pending) return;
+    onAdd({ fromId: pending.from.id, fromType: "character", toId: pending.to.id, toType: "character", label, color });
+    setPending(null);
+  };
+
+  return (
+    <>
+      {pending && (
+        <RelationPickerModal
+          fromChar={pending.from}
+          toChar={pending.to}
+          onConfirm={confirmRelation}
+          onCancel={() => setPending(null)}
+        />
+      )}
+
+      <div className="space-y-6">
+        {chars.length < 2 ? (
+          <div className="vault-panel p-10 text-center">
+            <Heart className="h-8 w-8 mx-auto mb-3 text-muted-foreground opacity-30" />
+            <p className="font-display text-xl mb-1">Za mało postaci</p>
+            <p className="text-muted-foreground text-sm">
+              Przypisz co najmniej dwie postacie do świata (zakładka Postacie), aby tworzyć relacje.
+            </p>
+          </div>
+        ) : (
+          <>
+            <WorldConnectionGraph chars={chars} connections={worldConns} />
+
+            <div className="space-y-2">
+              <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                Przeciągnij portret postaci na inny, aby dodać relację:
+              </p>
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
+                {chars.map((c) => (
+                  <CharPortrait
+                    key={c.id}
+                    char={c}
+                    isDragOver={dragTarget === c.id && dragSource !== c.id}
+                    onDragStart={() => setDragSource(c.id)}
+                    onDragOver={(e) => { e.preventDefault(); if (dragSource && dragSource !== c.id) setDragTarget(c.id); }}
+                    onDragLeave={() => setDragTarget(null)}
+                    onDrop={() => handleDrop(c.id)}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {worldConns.length > 0 && (
+              <div className="space-y-2">
+                <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                  Relacje ({worldConns.length}):
+                </p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {worldConns.map((conn) => {
+                    const from = chars.find((c) => c.id === conn.fromId);
+                    const to = chars.find((c) => c.id === conn.toId);
+                    return (
+                      <div key={conn.id} className="vault-panel px-3 py-2.5 flex items-center gap-3 group">
+                        <span className="h-2 w-2 rounded-full flex-shrink-0"
+                          style={{ background: conn.color ?? "#cf9d7b", boxShadow: `0 0 5px ${conn.color ?? "#cf9d7b"}` }} />
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          {from?.avatar
+                            ? <img src={from.avatar} alt="" className="h-6 w-6 rounded-full object-cover flex-shrink-0" />
+                            : <div className="h-6 w-6 rounded-full bg-muted flex-shrink-0" />}
+                          <span className="font-mono text-xs truncate">{from?.name ?? "?"}</span>
+                        </div>
+                        <span className="font-mono text-[10px] text-[hsl(var(--rune))] flex-shrink-0 whitespace-nowrap">
+                          — {conn.label} →
+                        </span>
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          {to?.avatar
+                            ? <img src={to.avatar} alt="" className="h-6 w-6 rounded-full object-cover flex-shrink-0" />
+                            : <div className="h-6 w-6 rounded-full bg-muted flex-shrink-0" />}
+                          <span className="font-mono text-xs truncate">{to?.name ?? "?"}</span>
+                        </div>
+                        <button
+                          onClick={() => onDelete(conn.id)}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive flex-shrink-0"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </>
+  );
+}
 
 /* ── Kronika (Lore) tab ──────────────────────────────────────── */
 function KronikaTab({ world, update }: { world: World; update: (p: Partial<World>) => void }) {
@@ -455,10 +792,14 @@ function WorldSettings({ world, update, onDelete }: {
 const WorldPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { db, updateWorld, deleteWorld, addWorld } = useVaultDB();
+  const { db, updateWorld, deleteWorld, addWorld, addConnection, deleteConnection } = useVaultDB();
   const worlds = db.worlds ?? [];
   const characters = db.characters ?? [];
   const world = worlds.find((w) => w.id === id);
+  const worldChars = useMemo(
+    () => characters.filter((c) => world?.characterIds.includes(c.id)),
+    [characters, world?.characterIds],
+  );
 
   const [tab, setTab] = useState<WorldTab>("kronika");
   const [editingHero, setEditingHero] = useState(false);
@@ -628,6 +969,15 @@ const WorldPage = () => {
               {/* Tab content */}
               <div key={tab} className="animate-fade-in">
                 {tab === "kronika" && <KronikaTab world={world} update={update} />}
+                {tab === "wiezi" && (
+                  <WięziTab
+                    world={world}
+                    chars={worldChars}
+                    allConnections={db.connections ?? []}
+                    onAdd={addConnection}
+                    onDelete={deleteConnection}
+                  />
+                )}
                 {tab === "encyklopedia" && <EncyklopediaTab world={world} update={update} />}
                 {tab === "historia" && <HistoriaTab world={world} update={update} />}
                 {tab === "moodboard" && <MoodboardTab world={world} update={update} />}
