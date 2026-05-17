@@ -23,7 +23,7 @@ import { fontFamilyStack, loadFonts } from "@/lib/fontLoader";
 const CharacterPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { db, updateCharacter, setDb, addCustomPalette, removeCustomPalette, addStickerPack, removeStickerPack } = useVaultDB();
+  const { db, updateCharacter, setDb, addCustomPalette, removeCustomPalette, addStickerPack, removeStickerPack, addCustomFont, removeCustomFont } = useVaultDB();
   const character = db.characters.find((c) => c.id === id);
 
   const [tab, setTab] = useState<TabId>("lore");
@@ -113,6 +113,9 @@ const CharacterPage = () => {
           customPalettes={db.settings.customPalettes}
           addCustomPalette={addCustomPalette}
           removeCustomPalette={removeCustomPalette}
+          customFonts={db.settings.customFonts}
+          onAddCustomFont={addCustomFont}
+          onRemoveCustomFont={removeCustomFont}
         />
         <SettingsModal db={db} setDb={setDb} />
       </div>

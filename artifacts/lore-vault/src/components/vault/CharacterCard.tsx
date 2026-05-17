@@ -1,13 +1,14 @@
 import { Link } from "react-router-dom";
-import { Trash2, User } from "lucide-react";
+import { Trash2, User, Globe } from "lucide-react";
 import { CSSProperties, useEffect } from "react";
-import { Character, AvatarBorderStyle } from "@/lib/vault-types";
+import { Character, AvatarBorderStyle, World } from "@/lib/vault-types";
 import { Button } from "@/components/ui/button";
 import { fontFamilyStack, loadFonts } from "@/lib/fontLoader";
 import { cn } from "@/lib/utils";
 
 interface Props {
   character: Character;
+  worlds?: World[];
   onDelete: (id: string) => void;
 }
 
@@ -33,8 +34,9 @@ export const AVATAR_BORDER_CLASS: Record<AvatarBorderStyle, string> = {
   ornate: "border-2 border-[hsl(var(--rune))] shadow-[0_0_0_5px_hsl(var(--rune)/0.18),0_0_0_8px_hsl(var(--rune)/0.08)]",
 };
 
-export const CharacterCard = ({ character, onDelete }: Props) => {
+export const CharacterCard = ({ character, worlds, onDelete }: Props) => {
   const { id, name, tagline, avatar, palette, animation, frame } = character;
+  const world = worlds?.find((w) => w.characterIds?.includes(id));
   const f = character.fonts ?? { display: character.font, body: "Cormorant Garamond", mono: "JetBrains Mono" };
   const avatarBorder = character.avatarBorder ?? "rune";
   const bgOpacity = (character.bgOpacity ?? 65) / 100;
@@ -106,6 +108,13 @@ export const CharacterCard = ({ character, onDelete }: Props) => {
                 {tagline}
               </p>
             </div>
+
+            {/* World badge */}
+            {world && (
+              <span className="absolute top-2 left-2 font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 bg-background/80 text-[hsl(195,85%,60%)] border border-[hsl(195,85%,60%)/0.5] flex items-center gap-1">
+                <Globe className="h-2.5 w-2.5" />{world.name}
+              </span>
+            )}
 
             {/* Palette badge */}
             <span className="absolute top-2 right-2 font-pixel text-[8px] uppercase px-1.5 py-1 bg-background/80 text-[hsl(var(--rune))] border border-[hsl(var(--rune)/0.5)]">

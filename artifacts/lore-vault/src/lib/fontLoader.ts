@@ -76,13 +76,24 @@ export function loadFonts(families: (string | undefined)[]) {
   families.forEach((f) => f && loadFont(f));
 }
 
+/** Load a user-uploaded font file via data: URL into a <style> @font-face block. */
+export function loadCustomFont(name: string, src: string) {
+  const id = `cf-${name.replace(/\s+/g, "-")}`;
+  if (document.getElementById(id)) return;
+  const style = document.createElement("style");
+  style.id = id;
+  style.textContent = `@font-face { font-family: "${name}"; src: url("${src}"); font-display: swap; }`;
+  document.head.appendChild(style);
+}
+
 export function fontFamilyStack(family: string): string {
   const preset = FONT_PRESETS.find((f) => f.family === family);
+  if (!preset) return `"${family}", system-ui, sans-serif`;
   const fallback =
-    preset?.category === "mono" ? "monospace" :
-    preset?.category === "serif" || preset?.category === "gothic" ? "Georgia, serif" :
-    preset?.category === "handwritten" ? "cursive" :
-    preset?.category === "pixel" ? "monospace" :
+    preset.category === "mono" ? "monospace" :
+    preset.category === "serif" || preset.category === "gothic" ? "Georgia, serif" :
+    preset.category === "handwritten" ? "cursive" :
+    preset.category === "pixel" ? "monospace" :
     "system-ui, sans-serif";
   return `"${family}", ${fallback}`;
 }

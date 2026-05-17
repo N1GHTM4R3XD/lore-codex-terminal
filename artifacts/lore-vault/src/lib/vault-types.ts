@@ -109,6 +109,13 @@ export interface CardFonts {
   mono: string;     // labels / chips
 }
 
+/** A user-uploaded font file (TTF/WOFF2) loaded as data: URL. */
+export interface CustomFont {
+  id: string;
+  name: string;
+  src: string;   // data: URL
+}
+
 /** A user-defined palette. Stored as 3–6 colors -> turned into CSS vars. */
 export interface CustomPalette {
   id: string;         // "custom_xxx"
@@ -216,6 +223,7 @@ export interface VaultDB {
     effect: Effect;
     customPalettes: CustomPalette[];
     stickerPacks: StickerPack[];
+    customFonts: CustomFont[];
   };
 }
 
@@ -326,7 +334,7 @@ export const DEFAULT_DB: VaultDB = {
   connections: [],
   folders: [],
   namedBoards: [],
-  settings: { effect: "embers", customPalettes: [], stickerPacks: [] },
+  settings: { effect: "embers", customPalettes: [], stickerPacks: [], customFonts: [] },
 };
 
 export const DEFAULT_STATE: Character = sampleA;
@@ -387,6 +395,7 @@ export function migrateDB(db: any): VaultDB {
       effect: db.settings?.effect ?? "embers",
       customPalettes: db.settings?.customPalettes ?? [],
       stickerPacks: db.settings?.stickerPacks ?? [],
+      customFonts: db.settings?.customFonts ?? [],
     },
   };
 }

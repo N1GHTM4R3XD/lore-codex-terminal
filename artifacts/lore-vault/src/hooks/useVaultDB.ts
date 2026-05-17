@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useLocalStorage } from "./useLocalStorage";
-import { Character, DEFAULT_DB, VaultDB, newCharacter, migrateDB, Whiteboard, CustomPalette, World, Connection, Folder, NamedWhiteboard, StickerPack } from "@/lib/vault-types";
+import { Character, DEFAULT_DB, VaultDB, newCharacter, migrateDB, Whiteboard, CustomPalette, World, Connection, Folder, NamedWhiteboard, StickerPack, CustomFont } from "@/lib/vault-types";
 import { applyCustomPaletteStyles } from "@/lib/paletteUtils";
 
 export function useVaultDB() {
@@ -49,6 +49,12 @@ export function useVaultDB() {
 
   const removeStickerPack = (id: string) =>
     setDb({ ...db, settings: { ...db.settings, stickerPacks: (db.settings.stickerPacks ?? []).filter((p) => p.id !== id) } });
+
+  const addCustomFont = (f: CustomFont) =>
+    setDb({ ...db, settings: { ...db.settings, customFonts: [...(db.settings.customFonts ?? []), f] } });
+
+  const removeCustomFont = (id: string) =>
+    setDb({ ...db, settings: { ...db.settings, customFonts: (db.settings.customFonts ?? []).filter((f) => f.id !== id) } });
 
   const addWorld = (w: Omit<World, "id">): World => {
     const created: World = { ...w, id: `world_${Date.now().toString(36)}` };
@@ -127,6 +133,8 @@ export function useVaultDB() {
     removeCustomPalette,
     addStickerPack,
     removeStickerPack,
+    addCustomFont,
+    removeCustomFont,
     addWorld,
     updateWorld,
     deleteWorld,

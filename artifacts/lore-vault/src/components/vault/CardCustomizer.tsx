@@ -1,13 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
-import { Sliders, Plus, Trash2, Palette as PaletteIcon, User, ChevronDown, ChevronUp, Music } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Sliders, Plus, Trash2, Palette as PaletteIcon, User, ChevronDown, ChevronUp, Music, Upload } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Character, CardAnimation, FrameStyle, AvatarBorderStyle, CustomPalette } from "@/lib/vault-types";
-import { FONT_PRESETS, fontFamilyStack, loadFont, loadFonts } from "@/lib/fontLoader";
+import { Character, CardAnimation, FrameStyle, AvatarBorderStyle, CustomPalette, CustomFont } from "@/lib/vault-types";
+import { FONT_PRESETS, fontFamilyStack, loadFont, loadFonts, loadCustomFont } from "@/lib/fontLoader";
 import { AVATAR_BORDER_CLASS } from "@/components/vault/CharacterCard";
 import { completePalette, darkenHex, deriveRune, lightenHex } from "@/lib/paletteUtils";
 import { cn } from "@/lib/utils";
@@ -18,6 +18,9 @@ interface Props {
   customPalettes: CustomPalette[];
   addCustomPalette: (p: CustomPalette) => void;
   removeCustomPalette: (id: string) => void;
+  customFonts?: CustomFont[];
+  onAddCustomFont?: (f: CustomFont) => void;
+  onRemoveCustomFont?: (id: string) => void;
 }
 
 const BUILTIN_PALETTES: { id: string; label: string; swatch: string }[] = [
@@ -85,9 +88,9 @@ const FONT_CATEGORIES: { id: string; label: string }[] = [
 
 /* ── Improved FontSelect ─────────────────────────────────────── */
 function FontSelect({
-  label, hint, value, sampleText, onChange,
+  label, hint, value, sampleText, onChange, customFonts = [],
 }: {
-  label: string; hint: string; value: string; sampleText: string; onChange: (v: string) => void;
+  label: string; hint: string; value: string; sampleText: string; onChange: (v: string) => void; customFonts?: CustomFont[];
 }) {
   useEffect(() => { loadFont(value); }, [value]);
   return (
@@ -115,6 +118,16 @@ function FontSelect({
               </SelectGroup>
             );
           })}
+          {customFonts.length > 0 && (
+            <SelectGroup>
+              <SelectLabel className="font-mono text-[10px] uppercase tracking-widest">Własne</SelectLabel>
+              {customFonts.map((cf) => (
+                <SelectItem key={cf.id} value={cf.name} onPointerEnter={() => loadCustomFont(cf.name, cf.src)}>
+                  <span style={{ fontFamily: `"${cf.name}", system-ui, sans-serif`, fontSize: "0.9rem" }}>{cf.name}</span>
+                </SelectItem>
+              ))}
+            </SelectGroup>
+          )}
         </SelectContent>
       </Select>
       {/* Live sample */}
@@ -124,6 +137,63 @@ function FontSelect({
       >
         <span className="text-lg leading-snug text-[hsl(var(--rune))]">{sampleText || value}</span>
       </div>
+    </div>
+  );
+}
+
+/* ── Custom font upload ───────────────────────────────────────── */
+function CustomFontUpload({
+  customFonts = [], onAdd, onRemove,
+}: {
+  customFonts?: CustomFont[];
+  onAdd?: (f: CustomFont) => void;
+  onRemove?: (id: string) => void;
+}) {
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const name = file.name.replace(/\.[^/.]+$/, "").slice(0, 28);
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const src = ev.target!.result as string;
+      onAdd?.({ id: `cf_${Date.now().toString(36)}`, name, src });
+      loadCustomFont(name, src);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <Label className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">Własne czcionki</Label>
+        <span className="font-mono text-[9px] text-muted-foreground">{customFonts.length} / 10</span>
+      </div>
+
+      {customFonts.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {customFonts.map((cf) => (
+            <div key={cf.id} className="group flex items-center gap-1 px-2 py-1 rounded border border-border bg-card/50 font-mono text-[10px]">
+              <span style={{ fontFamily: `"${cf.name}", sans-serif` }}>{cf.name}</span>
+              <button onClick={() => onRemove?.(cf.id)}
+                className="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-opacity"
+                aria-label="Usuń czcionkę">
+                <Trash2 className="h-3 w-3" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <input ref={fileRef} type="file" accept=".ttf,.woff,.woff2,.otf" className="hidden"
+        onChange={handleFile} />
+      <Button size="sm" variant="outline" onClick={() => fileRef.current?.click()}
+        className="font-mono uppercase text-xs" disabled={customFonts.length >= 10}>
+        <Upload className="h-3.5 w-3.5 mr-1" />
+        {customFonts.length >= 10 ? "Limit (10)" : "Wgraj font (.ttf / .woff)"}
+      </Button>
     </div>
   );
 }
@@ -403,7 +473,7 @@ function FramePreview({ character, frame, avatarBorder, fonts }: {
 }
 
 /* ── Main component ────────────────────────────────────────── */
-export const CardCustomizer = ({ character, update, customPalettes, addCustomPalette, removeCustomPalette }: Props) => {
+export const CardCustomizer = ({ character, update, customPalettes, addCustomPalette, removeCustomPalette, customFonts, onAddCustomFont, onRemoveCustomFont }: Props) => {
   const fonts = character.fonts ?? { display: character.font || "Pixelify Sans", body: "Cormorant Garamond", mono: "JetBrains Mono" };
   const currentFrame = character.frame ?? "pixel";
   const currentAvatarBorder = character.avatarBorder ?? "rune";
@@ -591,6 +661,7 @@ export const CardCustomizer = ({ character, update, customPalettes, addCustomPal
                 value={fonts.display}
                 sampleText={character.name || "Nagłówek"}
                 onChange={(v) => update({ font: v, fonts: { ...fonts, display: v } })}
+                customFonts={customFonts}
               />
               <FontSelect
                 label="Tekst"
@@ -598,6 +669,7 @@ export const CardCustomizer = ({ character, update, customPalettes, addCustomPal
                 value={fonts.body}
                 sampleText={character.tagline || "Tekst narracji"}
                 onChange={(v) => update({ fonts: { ...fonts, body: v } })}
+                customFonts={customFonts}
               />
               <FontSelect
                 label="Etykiety"
@@ -605,7 +677,13 @@ export const CardCustomizer = ({ character, update, customPalettes, addCustomPal
                 value={fonts.mono}
                 sampleText="LORE VAULT · UI"
                 onChange={(v) => update({ fonts: { ...fonts, mono: v } })}
+                customFonts={customFonts}
               />
+            </div>
+
+            {/* Custom font upload */}
+            <div className="pt-2 border-t border-border/40">
+              <CustomFontUpload customFonts={customFonts} onAdd={onAddCustomFont} onRemove={onRemoveCustomFont} />
             </div>
 
             {/* Combined live preview */}

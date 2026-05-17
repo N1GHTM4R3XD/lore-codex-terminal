@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Link, useNavigate } from "react-router-dom";
 import { useEffect } from "react";
-import { Character, Folder } from "@/lib/vault-types";
+import { Character, Folder, World } from "@/lib/vault-types";
 import { cn } from "@/lib/utils";
 import { useLang } from "@/hooks/useLang";
 
@@ -48,6 +48,7 @@ function FolderSection({
   folder,
   characters,
   allChars,
+  worlds,
   onUpdate,
   onDelete,
   onDeleteChar,
@@ -57,6 +58,7 @@ function FolderSection({
   folder: Folder;
   characters: Character[];
   allChars: Character[];
+  worlds?: World[];
   onUpdate: (patch: Partial<Folder>) => void;
   onDelete: () => void;
   onDeleteChar: (id: string) => void;
@@ -143,7 +145,7 @@ function FolderSection({
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pl-4">
               {characters.map((c) => (
                 <div key={c.id} className="relative group/card">
-                  <CharacterCard character={c} onDelete={onDeleteChar} />
+                  <CharacterCard character={c} worlds={worlds} onDelete={onDeleteChar} />
                   <button
                     onClick={() => onRemoveChar(c.id)}
                     className="absolute top-2 left-2 z-20 h-6 w-6 bg-background/90 border border-border rounded-full grid place-items-center opacity-0 group-hover/card:opacity-100 transition-opacity hover:text-destructive"
@@ -206,7 +208,7 @@ const Index = () => {
   const {
     db, addCharacter, deleteCharacter, setDb,
     addFolder, updateFolder, deleteFolder, toggleCharInFolder,
-    deleteWorld,
+    deleteWorld, addCustomFont, removeCustomFont,
   } = useVaultDB();
   const navigate = useNavigate();
 
@@ -368,7 +370,7 @@ const Index = () => {
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                     {filteredChars!.map((c) => (
-                      <CharacterCard key={c.id} character={c} onDelete={deleteCharacter} />
+                      <CharacterCard key={c.id} character={c} worlds={db.worlds} onDelete={deleteCharacter} />
                     ))}
                   </div>
                 </div>
@@ -428,6 +430,7 @@ const Index = () => {
                         folder={folder}
                         characters={folderChars}
                         allChars={db.characters}
+                        worlds={db.worlds}
                         onUpdate={(patch) => updateFolder(folder.id, patch)}
                         onDelete={() => deleteFolder(folder.id)}
                         onDeleteChar={deleteCharacter}
@@ -449,7 +452,7 @@ const Index = () => {
                       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 animate-fade-in">
                         {(folders.length === 0 ? db.characters : unassignedChars).map((c) => (
                           <div key={c.id} className="relative group/card">
-                            <CharacterCard character={c} onDelete={deleteCharacter} />
+                            <CharacterCard character={c} worlds={db.worlds} onDelete={deleteCharacter} />
                             {folders.length > 0 && (
                               <div className="absolute top-2 left-2 z-20 opacity-0 group-hover/card:opacity-100 transition-opacity">
                                 <Select onValueChange={(fid) => toggleCharInFolder(fid, c.id)}>
