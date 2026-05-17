@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   LayoutDashboard, Plus, Trash2, Image as ImageIcon,
   Pencil, Hand, Eraser, Save, ZoomIn, ZoomOut,
-  Undo2, Redo2, Palette,
+  Undo2, Redo2, Palette, Maximize2, Minimize2, PenTool,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -80,7 +80,6 @@ function drawStrokeOnCtx(
   ctx.restore();
 }
 
-/** Erase all stroke points within radius r (board coords). Returns updated stroke list. */
 function eraseAtPoint(
   strokes: BoardStroke[],
   bx: number, by: number, r: number,
@@ -159,36 +158,44 @@ export const WhiteboardCanvas = ({ board, onChange, title = "Tablica", hideHeade
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  /* tools */
   const [tool, setTool] = useState<Tool>("pan");
   const [brushType, setBrushType] = useState<BrushType>("pen");
   const [color, setColor] = useState("#e0b06a");
   const [size, setSize] = useState(4);
   const [eraserSize, setEraserSize] = useState(24);
 
-  /* viewport */
   const [vp, setVp] = useState<Viewport>({ x: 0, y: 0, scale: 1 });
 
-  /* background */
   const [showBg, setShowBg] = useState(false);
   const [bgColor, setBgColor] = useState(board.bgColor ?? "#0f0d0a");
   const [bgPat, setBgPat] = useState<BgPattern>(board.bgPattern ?? "grid");
   const [bgPatColor, setBgPatColor] = useState(board.bgPatternColor ?? "rgba(255,255,255,0.08)");
 
-  /* undo / redo */
   const [undoStack, setUndoStack] = useState<Whiteboard[]>([]);
   const [redoStack, setRedoStack] = useState<Whiteboard[]>([]);
 
-  /* in-progress refs */
+  /* new: fullscreen & stylus-only mode */
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [stylusOnly, setStylusOnly] = useState(false);
+
   const drawingRef = useRef<{ stroke: BoardStroke; pressures: number[] } | null>(null);
   const panRef = useRef<{ sx0: number; sy0: number; vx0: number; vy0: number } | null>(null);
   const eraserWorkRef = useRef<BoardStroke[]>([]);
   const isErasingRef = useRef(false);
   const dragNoteRef = useRef<{ id: string; ox: number; oy: number } | null>(null);
 
-  /* viewport ref for callbacks that close over it */
   const vpRef = useRef(vp);
   useEffect(() => { vpRef.current = vp; }, [vp]);
+
+  /* lock body scroll in fullscreen on mobile */
+  useEffect(() => {
+    if (isFullscreen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [isFullscreen]);
 
   /* ── undo helpers ───────────────────────────────────────────── */
   const pushUndo = useCallback((prev: Whiteboard) => {
@@ -234,15 +241,16 @@ export const WhiteboardCanvas = ({ board, onChange, title = "Tablica", hideHeade
 
   useEffect(() => { repaint(); }, [repaint]);
 
-  /* ── keyboard: undo/redo ────────────────────────────────────── */
+  /* ── keyboard: undo/redo & ESC fullscreen ───────────────────── */
   useEffect(() => {
     const fn = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === "z") { e.preventDefault(); undo(); }
       if ((e.ctrlKey || e.metaKey) && (e.key === "y" || (e.shiftKey && e.key === "z"))) { e.preventDefault(); redo(); }
+      if (e.key === "Escape" && isFullscreen) setIsFullscreen(false);
     };
     window.addEventListener("keydown", fn);
     return () => window.removeEventListener("keydown", fn);
-  }, [undo, redo]);
+  }, [undo, redo, isFullscreen]);
 
   /* ── wheel zoom ─────────────────────────────────────────────── */
   useEffect(() => {
@@ -263,6 +271,10 @@ export const WhiteboardCanvas = ({ board, onChange, title = "Tablica", hideHeade
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => el.removeEventListener("wheel", onWheel);
   }, []);
+
+  /* ── pinch-to-zoom on touch ──────────────────────────────────── */
+  const pinchRef = useRef<{ dist: number; mx: number; my: number } | null>(null);
+  const activeTouches = useRef<Map<number, { x: number; y: number }>>(new Map());
 
   const zoomAt = (factor: number) => {
     const el = wrapRef.current;
@@ -286,18 +298,44 @@ export const WhiteboardCanvas = ({ board, onChange, title = "Tablica", hideHeade
     (sy - v.y) / v.scale,
   ];
 
+  /**
+   * Resolve the effective tool for this pointer event.
+   * In stylus-only mode: touch always pans, stylus uses selected tool.
+   */
+  const effectiveTool = (e: React.PointerEvent): Tool => {
+    if (stylusOnly && e.pointerType === "touch") return "pan";
+    return tool;
+  };
+
   /* ── pointer events ─────────────────────────────────────────── */
   const onPointerDown = (e: React.PointerEvent) => {
+    activeTouches.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    /* Two-finger pinch detection */
+    if (activeTouches.current.size === 2 && e.pointerType === "touch") {
+      const pts = [...activeTouches.current.values()];
+      const dx = pts[1].x - pts[0].x;
+      const dy = pts[1].y - pts[0].y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const mx = (pts[0].x + pts[1].x) / 2 - wrapRef.current!.getBoundingClientRect().left;
+      const my = (pts[0].y + pts[1].y) / 2 - wrapRef.current!.getBoundingClientRect().top;
+      pinchRef.current = { dist, mx, my };
+      drawingRef.current = null;
+      panRef.current = null;
+      return;
+    }
+
     const { sx, sy } = localXY(e);
     const v = vpRef.current;
+    const eTool = effectiveTool(e);
 
-    if (tool === "pan") {
+    if (eTool === "pan") {
       panRef.current = { sx0: sx, sy0: sy, vx0: v.x, vy0: v.y };
       (e.currentTarget as Element).setPointerCapture(e.pointerId);
       return;
     }
 
-    if (tool === "draw") {
+    if (eTool === "draw") {
       (e.currentTarget as Element).setPointerCapture(e.pointerId);
       const [bx, by] = toBoard(sx, sy, v);
       const p = e.pressure <= 0 ? 0.5 : e.pressure;
@@ -308,7 +346,7 @@ export const WhiteboardCanvas = ({ board, onChange, title = "Tablica", hideHeade
       return;
     }
 
-    if (tool === "erase") {
+    if (eTool === "erase") {
       (e.currentTarget as Element).setPointerCapture(e.pointerId);
       isErasingRef.current = true;
       eraserWorkRef.current = [...board.strokes];
@@ -320,6 +358,25 @@ export const WhiteboardCanvas = ({ board, onChange, title = "Tablica", hideHeade
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
+    activeTouches.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+    /* Handle pinch zoom */
+    if (pinchRef.current && activeTouches.current.size === 2) {
+      const pts = [...activeTouches.current.values()];
+      const dx = pts[1].x - pts[0].x;
+      const dy = pts[1].y - pts[0].y;
+      const newDist = Math.sqrt(dx * dx + dy * dy);
+      const factor = newDist / pinchRef.current.dist;
+      const { mx, my } = pinchRef.current;
+      setVp(v => {
+        const ns = Math.min(MAX_SCALE, Math.max(MIN_SCALE, v.scale * factor));
+        const r = ns / v.scale;
+        return { scale: ns, x: mx - r * (mx - v.x), y: my - r * (my - v.y) };
+      });
+      pinchRef.current = { dist: newDist, mx, my };
+      return;
+    }
+
     const { sx, sy } = localXY(e);
     const v = vpRef.current;
 
@@ -359,7 +416,10 @@ export const WhiteboardCanvas = ({ board, onChange, title = "Tablica", hideHeade
     }
   };
 
-  const onPointerUp = () => {
+  const onPointerUp = (e: React.PointerEvent) => {
+    activeTouches.current.delete(e.pointerId);
+    if (activeTouches.current.size < 2) pinchRef.current = null;
+
     panRef.current = null;
     dragNoteRef.current = null;
 
@@ -383,6 +443,11 @@ export const WhiteboardCanvas = ({ board, onChange, title = "Tablica", hideHeade
       eraserWorkRef.current = [];
       repaint();
     }
+  };
+
+  const onPointerLeave = (e: React.PointerEvent) => {
+    activeTouches.current.delete(e.pointerId);
+    onPointerUp(e);
   };
 
   /* ── note helpers ───────────────────────────────────────────── */
@@ -447,117 +512,143 @@ export const WhiteboardCanvas = ({ board, onChange, title = "Tablica", hideHeade
   /* ── cursor ─────────────────────────────────────────────────── */
   const cursor = tool === "draw" ? "crosshair" : tool === "erase" ? "cell" : panRef.current ? "grabbing" : "grab";
 
-  /* ─────────────────────────────────────────── render ─── */
-  return (
-    <section className="space-y-3">
-      {/* Toolbar */}
-      <div className="flex items-center flex-wrap gap-2">
-        {!hideHeader && (
-          <h2 className="font-display text-2xl flex items-center gap-2 mr-auto">
-            <LayoutDashboard className="h-5 w-5 text-[hsl(var(--rune))]" />
-            {title}
-          </h2>
-        )}
+  /* ── toolbar (shared between normal and fullscreen) ─────────── */
+  const toolbar = (
+    <div className="flex items-center flex-wrap gap-2 px-2 py-1.5">
+      {!hideHeader && !isFullscreen && (
+        <h2 className="font-display text-2xl flex items-center gap-2 mr-auto">
+          <LayoutDashboard className="h-5 w-5 text-[hsl(var(--rune))]" />
+          {title}
+        </h2>
+      )}
 
-        {/* Tool picker */}
-        <div className="vault-panel rounded-full p-1 flex gap-0.5">
-          {([
-            { id: "pan" as Tool, icon: Hand, label: "Przesuwaj" },
-            { id: "draw" as Tool, icon: Pencil, label: "Rysuj" },
-            { id: "erase" as Tool, icon: Eraser, label: "Gumka" },
-          ] as const).map(({ id, icon: Icon, label }) => (
-            <button
-              key={id} onClick={() => setTool(id)} title={label} aria-pressed={tool === id}
-              className={cn("h-8 w-8 grid place-items-center rounded-full transition",
-                tool === id ? "bg-[hsl(var(--rune))] text-[hsl(var(--primary-foreground))]" : "text-muted-foreground hover:text-[hsl(var(--rune))]")}
-            >
-              <Icon className="h-4 w-4" />
-            </button>
-          ))}
-        </div>
-
-        {/* Draw options */}
-        {tool === "draw" && (
-          <div className="vault-panel rounded-full px-3 py-1 flex items-center gap-1.5 flex-wrap">
-            {(["pen", "marker", "pencil", "ink"] as BrushType[]).map(b => (
-              <button key={b} onClick={() => setBrushType(b)} title={b}
-                className={cn("font-mono text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full transition",
-                  brushType === b ? "bg-[hsl(var(--rune)/0.25)] text-[hsl(var(--rune))]" : "text-muted-foreground hover:text-foreground")}
-              >{b}</button>
-            ))}
-            <div className="w-px h-4 bg-border mx-0.5" />
-            <input type="color" value={color} onChange={e => setColor(e.target.value)}
-              className="h-7 w-7 rounded-full border border-border bg-transparent cursor-pointer" title="Kolor" />
-            <Input type="number" min={1} max={60} value={size}
-              onChange={e => setSize(Math.max(1, +e.target.value || 1))}
-              className="w-12 font-mono text-xs h-7 px-2" title="Grubość" />
-          </div>
-        )}
-
-        {/* Eraser size */}
-        {tool === "erase" && (
-          <div className="vault-panel rounded-full px-3 py-1 flex items-center gap-1.5">
-            <span className="font-mono text-[10px] text-muted-foreground uppercase">Promień:</span>
-            <Input type="number" min={4} max={200} value={eraserSize}
-              onChange={e => setEraserSize(Math.max(4, +e.target.value || 4))}
-              className="w-14 font-mono text-xs h-7 px-2" title="Promień gumki (px ekranu)" />
-          </div>
-        )}
-
-        {/* Zoom */}
-        <div className="vault-panel rounded-full p-1 flex gap-0.5 items-center">
-          <button onClick={() => zoomAt(0.8)} title="Oddal (scroll)"
-            className="h-7 w-7 grid place-items-center rounded-full text-muted-foreground hover:text-foreground transition">
-            <ZoomOut className="h-3.5 w-3.5" />
+      {/* Tool picker */}
+      <div className="vault-panel rounded-full p-1 flex gap-0.5">
+        {([
+          { id: "pan" as Tool, icon: Hand, label: "Przesuwaj (palec)" },
+          { id: "draw" as Tool, icon: Pencil, label: "Rysuj" },
+          { id: "erase" as Tool, icon: Eraser, label: "Gumka" },
+        ] as const).map(({ id, icon: Icon, label }) => (
+          <button
+            key={id} onClick={() => setTool(id)} title={label} aria-pressed={tool === id}
+            className={cn("h-8 w-8 grid place-items-center rounded-full transition",
+              tool === id ? "bg-[hsl(var(--rune))] text-[hsl(var(--primary-foreground))]" : "text-muted-foreground hover:text-[hsl(var(--rune))]")}
+          >
+            <Icon className="h-4 w-4" />
           </button>
-          <button onClick={() => setVp({ x: 0, y: 0, scale: 1 })} title="Resetuj widok"
-            className="font-mono text-[10px] px-2 text-muted-foreground hover:text-foreground transition min-w-[3rem] text-center">
-            {Math.round(vp.scale * 100)}%
-          </button>
-          <button onClick={() => zoomAt(1.25)} title="Przybliż (scroll)"
-            className="h-7 w-7 grid place-items-center rounded-full text-muted-foreground hover:text-foreground transition">
-            <ZoomIn className="h-3.5 w-3.5" />
-          </button>
-        </div>
-
-        {/* Undo / Redo */}
-        <div className="vault-panel rounded-full p-1 flex gap-0.5">
-          <button onClick={undo} disabled={!undoStack.length} title="Cofnij (Ctrl+Z)"
-            className="h-7 w-7 grid place-items-center rounded-full text-muted-foreground hover:text-foreground transition disabled:opacity-25">
-            <Undo2 className="h-3.5 w-3.5" />
-          </button>
-          <button onClick={redo} disabled={!redoStack.length} title="Przywróć (Ctrl+Y)"
-            className="h-7 w-7 grid place-items-center rounded-full text-muted-foreground hover:text-foreground transition disabled:opacity-25">
-            <Redo2 className="h-3.5 w-3.5" />
-          </button>
-        </div>
-
-        {/* Add note / image */}
-        <Button size="sm" variant="outline" onClick={() => addNote()} className="font-mono uppercase text-xs">
-          <Plus className="h-3.5 w-3.5 mr-1" />Notatka
-        </Button>
-        <Button size="sm" variant="outline" onClick={addImage} className="font-mono uppercase text-xs">
-          <ImageIcon className="h-3.5 w-3.5 mr-1" />Obraz
-        </Button>
-
-        {/* Background */}
-        <button onClick={() => setShowBg(v => !v)} title="Ustawienia tła"
-          className={cn("h-8 w-8 grid place-items-center rounded-full border transition",
-            showBg ? "border-[hsl(var(--rune)/0.5)] bg-[hsl(var(--rune)/0.12)] text-[hsl(var(--rune))]" : "border-border text-muted-foreground hover:text-foreground")}>
-          <Palette className="h-3.5 w-3.5" />
-        </button>
-
-        {/* Clear */}
-        <Button size="sm" variant="destructive" onClick={() => {
-          if (confirm("Wyczyścić całą tablicę?")) { pushUndo(board); onChange({ ...board, notes: [], strokes: [] }); }
-        }} className="font-mono uppercase text-xs">
-          <Trash2 className="h-3.5 w-3.5 mr-1" />Wyczyść
-        </Button>
+        ))}
       </div>
 
-      {/* Background panel */}
+      {/* Stylus-only toggle */}
+      <button
+        onClick={() => setStylusOnly(v => !v)}
+        title={stylusOnly ? "Tryb rysika: Rysik rysuje, palec przesuwa" : "Tryb rysika wyłączony — włącz, by palec zawsze przesuwał"}
+        aria-pressed={stylusOnly}
+        className={cn(
+          "h-8 px-2.5 flex items-center gap-1.5 rounded-full border font-mono text-[10px] uppercase tracking-wider transition",
+          stylusOnly
+            ? "border-[hsl(var(--rune)/0.7)] bg-[hsl(var(--rune)/0.15)] text-[hsl(var(--rune))]"
+            : "border-border text-muted-foreground hover:text-foreground"
+        )}
+      >
+        <PenTool className="h-3.5 w-3.5" />
+        <span className="hidden sm:inline">Rysik</span>
+      </button>
+
+      {/* Draw options */}
+      {tool === "draw" && (
+        <div className="vault-panel rounded-full px-3 py-1 flex items-center gap-1.5 flex-wrap">
+          {(["pen", "marker", "pencil", "ink"] as BrushType[]).map(b => (
+            <button key={b} onClick={() => setBrushType(b)} title={b}
+              className={cn("font-mono text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full transition",
+                brushType === b ? "bg-[hsl(var(--rune)/0.25)] text-[hsl(var(--rune))]" : "text-muted-foreground hover:text-foreground")}
+            >{b}</button>
+          ))}
+          <div className="w-px h-4 bg-border mx-0.5" />
+          <input type="color" value={color} onChange={e => setColor(e.target.value)}
+            className="h-7 w-7 rounded-full border border-border bg-transparent cursor-pointer" title="Kolor" />
+          <Input type="number" min={1} max={60} value={size}
+            onChange={e => setSize(Math.max(1, +e.target.value || 1))}
+            className="w-12 font-mono text-xs h-7 px-2" title="Grubość" />
+        </div>
+      )}
+
+      {/* Eraser size */}
+      {tool === "erase" && (
+        <div className="vault-panel rounded-full px-3 py-1 flex items-center gap-1.5">
+          <span className="font-mono text-[10px] text-muted-foreground uppercase">Promień:</span>
+          <Input type="number" min={4} max={200} value={eraserSize}
+            onChange={e => setEraserSize(Math.max(4, +e.target.value || 4))}
+            className="w-14 font-mono text-xs h-7 px-2" title="Promień gumki (px ekranu)" />
+        </div>
+      )}
+
+      {/* Zoom */}
+      <div className="vault-panel rounded-full p-1 flex gap-0.5 items-center">
+        <button onClick={() => zoomAt(0.8)} title="Oddal"
+          className="h-7 w-7 grid place-items-center rounded-full text-muted-foreground hover:text-foreground transition">
+          <ZoomOut className="h-3.5 w-3.5" />
+        </button>
+        <button onClick={() => setVp({ x: 0, y: 0, scale: 1 })} title="Resetuj widok"
+          className="font-mono text-[10px] px-2 text-muted-foreground hover:text-foreground transition min-w-[3rem] text-center">
+          {Math.round(vp.scale * 100)}%
+        </button>
+        <button onClick={() => zoomAt(1.25)} title="Przybliż"
+          className="h-7 w-7 grid place-items-center rounded-full text-muted-foreground hover:text-foreground transition">
+          <ZoomIn className="h-3.5 w-3.5" />
+        </button>
+      </div>
+
+      {/* Undo / Redo */}
+      <div className="vault-panel rounded-full p-1 flex gap-0.5">
+        <button onClick={undo} disabled={!undoStack.length} title="Cofnij (Ctrl+Z)"
+          className="h-7 w-7 grid place-items-center rounded-full text-muted-foreground hover:text-foreground transition disabled:opacity-25">
+          <Undo2 className="h-3.5 w-3.5" />
+        </button>
+        <button onClick={redo} disabled={!redoStack.length} title="Przywróć (Ctrl+Y)"
+          className="h-7 w-7 grid place-items-center rounded-full text-muted-foreground hover:text-foreground transition disabled:opacity-25">
+          <Redo2 className="h-3.5 w-3.5" />
+        </button>
+      </div>
+
+      {/* Add note / image */}
+      <Button size="sm" variant="outline" onClick={() => addNote()} className="font-mono uppercase text-xs">
+        <Plus className="h-3.5 w-3.5 mr-1" />Notatka
+      </Button>
+      <Button size="sm" variant="outline" onClick={addImage} className="font-mono uppercase text-xs">
+        <ImageIcon className="h-3.5 w-3.5 mr-1" />Obraz
+      </Button>
+
+      {/* Background */}
+      <button onClick={() => setShowBg(v => !v)} title="Ustawienia tła"
+        className={cn("h-8 w-8 grid place-items-center rounded-full border transition",
+          showBg ? "border-[hsl(var(--rune)/0.5)] bg-[hsl(var(--rune)/0.12)] text-[hsl(var(--rune))]" : "border-border text-muted-foreground hover:text-foreground")}>
+        <Palette className="h-3.5 w-3.5" />
+      </button>
+
+      {/* Fullscreen toggle */}
+      <button
+        onClick={() => setIsFullscreen(v => !v)}
+        title={isFullscreen ? "Wyjdź z pełnego ekranu (Esc)" : "Pełny ekran"}
+        className="h-8 w-8 grid place-items-center rounded-full border border-border text-muted-foreground hover:text-foreground hover:border-[hsl(var(--rune)/0.5)] transition"
+      >
+        {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+      </button>
+
+      {/* Clear */}
+      <Button size="sm" variant="destructive" onClick={() => {
+        if (confirm("Wyczyścić całą tablicę?")) { pushUndo(board); onChange({ ...board, notes: [], strokes: [] }); }
+      }} className="font-mono uppercase text-xs">
+        <Trash2 className="h-3.5 w-3.5 mr-1" />Wyczyść
+      </Button>
+    </div>
+  );
+
+  /* ── canvas area ─────────────────────────────────────────────── */
+  const canvasArea = (
+    <>
       {showBg && (
-        <div className="vault-panel p-4 flex flex-wrap items-center gap-4 animate-fade-in">
+        <div className="vault-panel p-4 flex flex-wrap items-center gap-4 animate-fade-in mx-2">
           <div className="flex items-center gap-2">
             <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Kolor tła:</span>
             <input type="color" value={bgColor} onChange={e => applyBg({ bgColor: e.target.value })}
@@ -585,19 +676,35 @@ export const WhiteboardCanvas = ({ board, onChange, title = "Tablica", hideHeade
         </div>
       )}
 
-      {/* Canvas */}
+      {/* stylus-only hint */}
+      {stylusOnly && tool !== "pan" && (
+        <div className="mx-2 px-3 py-1.5 vault-panel rounded-full flex items-center gap-2 animate-fade-in">
+          <PenTool className="h-3 w-3 text-[hsl(var(--rune))] shrink-0" />
+          <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">
+            Tryb rysika: palec = przesuwa, rysik = rysuje
+          </span>
+        </div>
+      )}
+
       <div
         ref={wrapRef}
-        className="vault-panel relative w-full h-[65vh] overflow-hidden select-none"
-        style={{ ...bgStyle(bgColor, bgPat, bgPatColor, vp), cursor }}
+        className={cn(
+          "vault-panel relative overflow-hidden select-none",
+          isFullscreen ? "flex-1 min-h-0 mx-2 mb-2 rounded-lg" : "w-full h-[65vh]"
+        )}
+        style={{
+          ...bgStyle(bgColor, bgPat, bgPatColor, vp),
+          cursor,
+          touchAction: "none",   /* ← prevents page scroll while drawing/panning */
+        }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
-        onPointerLeave={onPointerUp}
+        onPointerLeave={onPointerLeave}
+        onPointerCancel={onPointerLeave}
       >
         <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none" />
 
-        {/* Notes */}
         {board.notes.map(n => (
           <article
             key={n.id}
@@ -638,23 +745,43 @@ export const WhiteboardCanvas = ({ board, onChange, title = "Tablica", hideHeade
           </article>
         ))}
 
-        {/* Empty hint */}
         {board.notes.length === 0 && board.strokes.length === 0 && (
           <div className="absolute inset-0 grid place-items-center pointer-events-none">
-            <p className="font-mono text-xs uppercase tracking-[0.3em] text-muted-foreground opacity-40">
-              Pusta tablica · scroll = zoom · przeciągnij = przesuń
+            <p className="font-mono text-xs uppercase tracking-[0.3em] text-muted-foreground opacity-40 text-center px-4">
+              Pusta tablica · scroll/szczypanie = zoom · przeciągnij = przesuń
             </p>
           </div>
         )}
       </div>
 
-      {/* Status */}
-      <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground flex items-center gap-1.5 flex-wrap">
+      <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground flex items-center gap-1.5 flex-wrap px-2 pb-1">
         <Save className="h-3 w-3" />
         Autozapis · {board.notes.length} notatek · {board.strokes.length} szkiców
         {undoStack.length > 0 && <span className="opacity-50">· undo: {undoStack.length}</span>}
         <span className="opacity-40">· {Math.round(vp.scale * 100)}% zoom</span>
+        {stylusOnly && <span className="text-[hsl(var(--rune))] opacity-80">· ✦ tryb rysika</span>}
       </p>
+    </>
+  );
+
+  /* ─────────────────────────────────────────── render ─── */
+  if (isFullscreen) {
+    return (
+      <div className="fixed inset-0 z-50 flex flex-col bg-[hsl(var(--background))]">
+        <div className="shrink-0 border-b border-border/40 bg-[hsl(var(--card)/0.95)] backdrop-blur-sm">
+          {toolbar}
+        </div>
+        {canvasArea}
+      </div>
+    );
+  }
+
+  return (
+    <section className="space-y-3">
+      <div className="flex items-center flex-wrap gap-2">
+        {toolbar}
+      </div>
+      {canvasArea}
     </section>
   );
 };
