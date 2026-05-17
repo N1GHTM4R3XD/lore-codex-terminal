@@ -69,9 +69,27 @@ export interface BoardStroke {
   brushType?: BrushType;
 }
 
+/** A single placed sticker on a whiteboard. */
+export interface Sticker {
+  id: string;
+  src: string;      // emoji char (1-2 chars) or data: / https: URL
+  x: number;        // board-space px
+  y: number;
+  size: number;     // board-space px (square)
+  rotate: number;   // degrees
+}
+
+/** A named pack of custom (uploaded) sticker images. */
+export interface StickerPack {
+  id: string;
+  name: string;
+  images: { id: string; src: string }[];
+}
+
 export interface Whiteboard {
   notes: BoardNote[];
   strokes: BoardStroke[];
+  stickers?: Sticker[];
   bgColor?: string;
   bgPattern?: BgPattern;
   bgPatternColor?: string;
@@ -197,6 +215,7 @@ export interface VaultDB {
   settings: {
     effect: Effect;
     customPalettes: CustomPalette[];
+    stickerPacks: StickerPack[];
   };
 }
 
@@ -307,7 +326,7 @@ export const DEFAULT_DB: VaultDB = {
   connections: [],
   folders: [],
   namedBoards: [],
-  settings: { effect: "embers", customPalettes: [] },
+  settings: { effect: "embers", customPalettes: [], stickerPacks: [] },
 };
 
 export const DEFAULT_STATE: Character = sampleA;
@@ -367,6 +386,7 @@ export function migrateDB(db: any): VaultDB {
     settings: {
       effect: db.settings?.effect ?? "embers",
       customPalettes: db.settings?.customPalettes ?? [],
+      stickerPacks: db.settings?.stickerPacks ?? [],
     },
   };
 }

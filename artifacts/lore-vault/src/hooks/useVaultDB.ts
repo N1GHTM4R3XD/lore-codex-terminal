@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useLocalStorage } from "./useLocalStorage";
-import { Character, DEFAULT_DB, VaultDB, newCharacter, migrateDB, Whiteboard, CustomPalette, World, Connection, Folder, NamedWhiteboard } from "@/lib/vault-types";
+import { Character, DEFAULT_DB, VaultDB, newCharacter, migrateDB, Whiteboard, CustomPalette, World, Connection, Folder, NamedWhiteboard, StickerPack } from "@/lib/vault-types";
 import { applyCustomPaletteStyles } from "@/lib/paletteUtils";
 
 export function useVaultDB() {
@@ -43,6 +43,12 @@ export function useVaultDB() {
         customPalettes: db.settings.customPalettes.filter((p) => p.id !== id),
       },
     });
+
+  const addStickerPack = (p: StickerPack) =>
+    setDb({ ...db, settings: { ...db.settings, stickerPacks: [...(db.settings.stickerPacks ?? []), p] } });
+
+  const removeStickerPack = (id: string) =>
+    setDb({ ...db, settings: { ...db.settings, stickerPacks: (db.settings.stickerPacks ?? []).filter((p) => p.id !== id) } });
 
   const addWorld = (w: Omit<World, "id">): World => {
     const created: World = { ...w, id: `world_${Date.now().toString(36)}` };
@@ -119,6 +125,8 @@ export function useVaultDB() {
     setWorldBoard,
     addCustomPalette,
     removeCustomPalette,
+    addStickerPack,
+    removeStickerPack,
     addWorld,
     updateWorld,
     deleteWorld,

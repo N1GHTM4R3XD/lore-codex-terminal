@@ -3,10 +3,11 @@ import {
   LayoutDashboard, Plus, Trash2, Image as ImageIcon,
   Pencil, Hand, Eraser, Save, ZoomIn, ZoomOut,
   Undo2, Redo2, Palette, Maximize2, Minimize2, PenTool,
+  Sparkles, X, Upload,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { BoardNote, BoardStroke, BrushType, BgPattern, Whiteboard } from "@/lib/vault-types";
+import { BoardNote, BoardStroke, BrushType, BgPattern, Whiteboard, Sticker, StickerPack } from "@/lib/vault-types";
 import { cn } from "@/lib/utils";
 
 /* ─── Types ─────────────────────────────────────────────────── */
@@ -18,6 +19,16 @@ const GRID = 32;
 const MIN_SCALE = 0.08;
 const MAX_SCALE = 12;
 const STICKY_COLORS = ["#f7d774", "#e89a9a", "#a8d8a0", "#8fc4d8", "#cfa8e0", "#f0c89e"];
+
+const EMOJI_CATEGORIES: { label: string; items: string[] }[] = [
+  { label: "Walka",      items: ["⚔️","🗡️","🛡️","🏹","💥","⚡","🔥","💣","⚰️","🩸"] },
+  { label: "Magia",      items: ["🔮","🪄","✨","💫","🌟","⭐","🌙","🌀","🌊","🧿"] },
+  { label: "Stworzenia", items: ["🐉","👁️","🦇","🕷️","🐺","🦅","🐍","🦁","🐻","🐈‍⬛"] },
+  { label: "Emocje",     items: ["❤️","💔","😈","💀","☠️","😊","😭","🤔","😎","🥺"] },
+  { label: "Przedmioty", items: ["📜","🗺️","🔑","🗝️","💎","🏺","🕯️","🧪","📖","🎲"] },
+  { label: "Natura",     items: ["🌲","🌺","🍄","🌾","🍂","🌸","🌿","🌻","🌈","❄️"] },
+  { label: "Symbole",    items: ["⭕","❗","❓","‼️","🔴","🟡","🟢","🔵","🟣","⚪"] },
+];
 
 /* ─── Pure helpers ───────────────────────────────────────────── */
 function pressureFactor(p: number, brush: BrushType): number {
@@ -152,9 +163,12 @@ interface Props {
   onChange: (next: Whiteboard) => void;
   title?: string;
   hideHeader?: boolean;
+  stickerPacks?: StickerPack[];
+  onAddStickerPack?: (p: StickerPack) => void;
+  onRemoveStickerPack?: (id: string) => void;
 }
 
-export const WhiteboardCanvas = ({ board, onChange, title = "Tablica", hideHeader }: Props) => {
+export const WhiteboardCanvas = ({ board, onChange, title = "Tablica", hideHeader, stickerPacks, onAddStickerPack, onRemoveStickerPack }: Props) => {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -183,6 +197,12 @@ export const WhiteboardCanvas = ({ board, onChange, title = "Tablica", hideHeade
   const eraserWorkRef = useRef<BoardStroke[]>([]);
   const isErasingRef = useRef(false);
   const dragNoteRef = useRef<{ id: string; ox: number; oy: number } | null>(null);
+  const dragStickerRef = useRef<{ id: string; ox: number; oy: number } | null>(null);
+  const resizeStickerRef = useRef<{ id: string; startX: number; startY: number; startSize: number } | null>(null);
+
+  const [showStickerPanel, setShowStickerPanel] = useState(false);
+  const [stickerTab, setStickerTab] = useState<"emoji" | "custom">("emoji");
+  const stickerUploadRef = useRef<HTMLInputElement>(null);
 
   const vpRef = useRef(vp);
   vpRef.current = vp; // sync during render — no effect needed
@@ -380,6 +400,22 @@ export const WhiteboardCanvas = ({ board, onChange, title = "Tablica", hideHeade
     const { sx, sy } = localXY(e);
     const v = vpRef.current;
 
+    if (dragStickerRef.current) {
+      const d = dragStickerRef.current;
+      const nbx = (sx - d.ox - v.x) / v.scale;
+      const nby = (sy - d.oy - v.y) / v.scale;
+      onChange({ ...board, stickers: (board.stickers ?? []).map(s => s.id === d.id ? { ...s, x: nbx, y: nby } : s) });
+      return;
+    }
+
+    if (resizeStickerRef.current) {
+      const r = resizeStickerRef.current;
+      const delta = ((sx - r.startX) + (sy - r.startY)) / 2 / v.scale;
+      const newSize = Math.max(20, r.startSize + delta);
+      onChange({ ...board, stickers: (board.stickers ?? []).map(s => s.id === r.id ? { ...s, size: newSize } : s) });
+      return;
+    }
+
     if (dragNoteRef.current) {
       const d = dragNoteRef.current;
       const nbx = (sx - d.ox - v.x) / v.scale;
@@ -422,6 +458,8 @@ export const WhiteboardCanvas = ({ board, onChange, title = "Tablica", hideHeade
 
     panRef.current = null;
     dragNoteRef.current = null;
+    dragStickerRef.current = null;
+    resizeStickerRef.current = null;
 
     if (drawingRef.current) {
       const { stroke, pressures } = drawingRef.current;
@@ -495,6 +533,64 @@ export const WhiteboardCanvas = ({ board, onChange, title = "Tablica", hideHeade
 
   const updateNote = (id: string, p: Partial<BoardNote>) =>
     onChange({ ...board, notes: board.notes.map(n => n.id === id ? { ...n, ...p } : n) });
+
+  /* ── sticker helpers ─────────────────────────────────────────── */
+  const addSticker = (src: string) => {
+    const v = vpRef.current;
+    const el = wrapRef.current;
+    const [bx, by] = toBoard((el?.clientWidth ?? 600) / 2, (el?.clientHeight ?? 400) / 2, v);
+    const s: Sticker = {
+      id: crypto.randomUUID(),
+      src,
+      x: bx - 40 + (Math.random() - 0.5) * 60,
+      y: by - 40 + (Math.random() - 0.5) * 60,
+      size: 80,
+      rotate: (Math.random() - 0.5) * 12,
+    };
+    pushUndo(board);
+    onChange({ ...board, stickers: [...(board.stickers ?? []), s] });
+  };
+
+  const removeSticker = (id: string) => {
+    pushUndo(board);
+    onChange({ ...board, stickers: (board.stickers ?? []).filter(s => s.id !== id) });
+  };
+
+  const stickerPointerDown = (e: React.PointerEvent, s: Sticker) => {
+    if (tool !== "pan") return;
+    e.stopPropagation();
+    const { sx, sy } = localXY(e);
+    const v = vpRef.current;
+    dragStickerRef.current = { id: s.id, ox: sx - s.x * v.scale - v.x, oy: sy - s.y * v.scale - v.y };
+    (e.currentTarget as Element).setPointerCapture(e.pointerId);
+  };
+
+  const resizeStickerPointerDown = (e: React.PointerEvent, s: Sticker) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const { sx, sy } = localXY(e);
+    resizeStickerRef.current = { id: s.id, startX: sx, startY: sy, startSize: s.size };
+    (e.currentTarget as Element).setPointerCapture(e.pointerId);
+  };
+
+  const uploadStickerPack = async (files: FileList) => {
+    const images: { id: string; src: string }[] = [];
+    for (const file of Array.from(files)) {
+      const src = await new Promise<string>((resolve) => {
+        const r = new FileReader();
+        r.onload = (ev) => resolve(ev.target!.result as string);
+        r.readAsDataURL(file);
+      });
+      images.push({ id: crypto.randomUUID(), src });
+    }
+    if (!images.length) return;
+    const pack: StickerPack = {
+      id: `sp_${Date.now().toString(36)}`,
+      name: `Paczka ${(stickerPacks?.length ?? 0) + 1}`,
+      images,
+    };
+    onAddStickerPack?.(pack);
+  };
 
   /* ── background persist ─────────────────────────────────────── */
   const applyBg = (patch: { bgColor?: string; bgPattern?: BgPattern; bgPatternColor?: string }) => {
@@ -618,6 +714,9 @@ export const WhiteboardCanvas = ({ board, onChange, title = "Tablica", hideHeade
       <Button size="sm" variant="outline" onClick={addImage} className="font-mono uppercase text-xs">
         <ImageIcon className="h-3.5 w-3.5 mr-1" />Obraz
       </Button>
+      <Button size="sm" variant={showStickerPanel ? "default" : "outline"} onClick={() => setShowStickerPanel(v => !v)} className="font-mono uppercase text-xs">
+        <Sparkles className="h-3.5 w-3.5 mr-1" />Naklejki
+      </Button>
 
       {/* Background */}
       <button onClick={() => setShowBg(v => !v)} title="Ustawienia tła"
@@ -647,6 +746,79 @@ export const WhiteboardCanvas = ({ board, onChange, title = "Tablica", hideHeade
   /* ── canvas area ─────────────────────────────────────────────── */
   const canvasArea = (
     <>
+      {/* ── Sticker panel ─────────────────────────────────────── */}
+      {showStickerPanel && (
+        <div className="vault-panel p-3 animate-fade-in mx-2 max-h-72 overflow-y-auto">
+          {/* tabs */}
+          <div className="flex items-center gap-1 mb-3 border-b border-border pb-2">
+            {(["emoji", "custom"] as const).map(t => (
+              <button key={t} onClick={() => setStickerTab(t)}
+                className={cn("font-mono text-[10px] uppercase tracking-wider px-3 py-1 rounded transition",
+                  stickerTab === t ? "bg-[hsl(var(--rune)/0.2)] text-[hsl(var(--rune))]" : "text-muted-foreground hover:text-foreground")}>
+                {t === "emoji" ? "Emoji" : "Własne paczki"}
+              </button>
+            ))}
+          </div>
+
+          {stickerTab === "emoji" && (
+            <div className="space-y-2">
+              {EMOJI_CATEGORIES.map(cat => (
+                <div key={cat.label}>
+                  <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground mb-1">{cat.label}</p>
+                  <div className="flex flex-wrap gap-1">
+                    {cat.items.map(em => (
+                      <button key={em} onClick={() => { addSticker(em); }}
+                        className="text-2xl leading-none p-1.5 rounded hover:bg-[hsl(var(--rune)/0.12)] transition select-none"
+                        title={`Wstaw ${em}`}
+                      >{em}</button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {stickerTab === "custom" && (
+            <div className="space-y-3">
+              {/* Upload button */}
+              <div>
+                <input ref={stickerUploadRef} type="file" accept="image/*" multiple className="hidden"
+                  onChange={e => { if (e.target.files?.length) uploadStickerPack(e.target.files); e.target.value = ""; }} />
+                <Button size="sm" variant="outline" onClick={() => stickerUploadRef.current?.click()} className="font-mono uppercase text-xs">
+                  <Upload className="h-3.5 w-3.5 mr-1" />Wgraj paczke obrazków (PNG 128×128)
+                </Button>
+                <p className="font-mono text-[9px] text-muted-foreground mt-1">PNG bez tła, dowolna liczba plików naraz.</p>
+              </div>
+
+              {/* Existing packs */}
+              {(!stickerPacks || stickerPacks.length === 0) && (
+                <p className="font-mono text-[10px] text-muted-foreground italic">Brak własnych paczek. Wgraj obrazy powyżej.</p>
+              )}
+              {(stickerPacks ?? []).map(pack => (
+                <div key={pack.id}>
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">{pack.name}</p>
+                    <button onClick={() => onRemoveStickerPack?.(pack.id)}
+                      className="text-muted-foreground hover:text-destructive transition" title="Usuń paczkę">
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {pack.images.map(img => (
+                      <button key={img.id} onClick={() => addSticker(img.src)}
+                        className="h-12 w-12 rounded border border-border hover:border-[hsl(var(--rune)/0.5)] overflow-hidden transition"
+                        title="Wstaw naklejkę">
+                        <img src={img.src} alt="" className="h-full w-full object-contain" loading="lazy" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {showBg && (
         <div className="vault-panel p-4 flex flex-wrap items-center gap-4 animate-fade-in mx-2">
           <div className="flex items-center gap-2">
@@ -704,6 +876,43 @@ export const WhiteboardCanvas = ({ board, onChange, title = "Tablica", hideHeade
         onPointerCancel={onPointerLeave}
       >
         <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none" />
+
+        {/* ── Stickers ─────────────────────────────────────── */}
+        {(board.stickers ?? []).map(s => {
+          const isUrl = s.src.startsWith("data:") || s.src.startsWith("http");
+          const screenX = s.x * vp.scale + vp.x;
+          const screenY = s.y * vp.scale + vp.y;
+          const screenSize = Math.max(16, s.size * vp.scale);
+          return (
+            <div
+              key={s.id}
+              className="absolute group select-none"
+              style={{
+                left: screenX, top: screenY,
+                width: screenSize, height: screenSize,
+                transform: `rotate(${s.rotate}deg)`,
+                zIndex: 12,
+                cursor: tool === "pan" ? "grab" : "default",
+              }}
+              onPointerDown={e => stickerPointerDown(e, s)}
+            >
+              {isUrl
+                ? <img src={s.src} alt="" draggable={false} className="w-full h-full object-contain pointer-events-none" loading="lazy" />
+                : <span aria-hidden style={{ fontSize: screenSize * 0.78 }} className="leading-none flex items-center justify-center w-full h-full pointer-events-none">{s.src}</span>
+              }
+              {/* delete */}
+              <button
+                onClick={e => { e.stopPropagation(); removeSticker(s.id); }}
+                className="absolute -top-2.5 -right-2.5 h-5 w-5 rounded-full bg-background border border-border grid place-items-center opacity-0 group-hover:opacity-100 transition z-20 text-muted-foreground hover:text-destructive"
+              ><X className="h-3 w-3" /></button>
+              {/* resize handle */}
+              <div
+                className="absolute -bottom-2 -right-2 w-4 h-4 rounded-sm bg-[hsl(var(--rune)/0.85)] opacity-0 group-hover:opacity-100 cursor-se-resize transition z-20 grid place-items-center"
+                onPointerDown={e => resizeStickerPointerDown(e, s)}
+              ><span className="text-[7px] text-background font-bold leading-none pointer-events-none">↔</span></div>
+            </div>
+          );
+        })}
 
         {board.notes.map(n => (
           <article

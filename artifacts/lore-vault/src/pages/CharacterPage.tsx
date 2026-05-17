@@ -23,7 +23,7 @@ import { fontFamilyStack, loadFonts } from "@/lib/fontLoader";
 const CharacterPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { db, updateCharacter, setDb, addCustomPalette, removeCustomPalette } = useVaultDB();
+  const { db, updateCharacter, setDb, addCustomPalette, removeCustomPalette, addStickerPack, removeStickerPack } = useVaultDB();
   const character = db.characters.find((c) => c.id === id);
 
   const [tab, setTab] = useState<TabId>("lore");
@@ -138,7 +138,13 @@ const CharacterPage = () => {
             {tab === "moodboard" && <MoodboardTab state={character} update={update} />}
             {tab === "gallery" && <GalleryTab state={character} update={update} />}
             {tab === "whiteboard" && (
-              <NamedWhiteboardsTab state={character} update={update} />
+              <NamedWhiteboardsTab
+                state={character}
+                update={update}
+                stickerPacks={db.settings.stickerPacks}
+                onAddStickerPack={addStickerPack}
+                onRemoveStickerPack={removeStickerPack}
+              />
             )}
             {tab === "encyclopedia" && (
               <EncyclopediaTab state={character} update={update} focusName={focusEntity} />
