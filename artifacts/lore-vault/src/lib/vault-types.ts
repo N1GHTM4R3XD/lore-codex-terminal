@@ -123,6 +123,13 @@ export interface Connection {
   color?: string;
 }
 
+export interface WorldHistoryEntry {
+  id: string;
+  era: string;     // e.g. "Era Pierwszego Ognia"
+  title: string;
+  body: string;
+}
+
 export interface World {
   id: string;
   name: string;
@@ -130,6 +137,12 @@ export interface World {
   characterIds: string[];
   imageUrl?: string;
   palette?: Palette;
+  lore?: string;
+  entities?: Entity[];
+  moodboard?: MoodImage[];
+  history?: WorldHistoryEntry[];
+  whiteboard?: Whiteboard;
+  musicUrl?: string;
 }
 
 /**
@@ -322,10 +335,20 @@ export function migrateDB(db: any): VaultDB {
         mono: "JetBrains Mono",
       },
   }));
+  const worlds: World[] = (db.worlds ?? []).map((w: any) => ({
+    ...w,
+    lore: w.lore ?? "",
+    entities: w.entities ?? [],
+    moodboard: w.moodboard ?? [],
+    history: w.history ?? [],
+    whiteboard: w.whiteboard ?? emptyBoard(),
+    musicUrl: w.musicUrl ?? "",
+  }));
+
   return {
     characters,
     worldBoard: db.worldBoard ?? emptyBoard(),
-    worlds: db.worlds ?? [],
+    worlds,
     connections: db.connections ?? [],
     folders: db.folders ?? [],
     namedBoards: db.namedBoards ?? [],
