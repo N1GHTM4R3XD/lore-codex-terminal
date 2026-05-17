@@ -159,17 +159,15 @@ function renderInline(
   onEntityClick: ((n: string) => void) | undefined,
   lang: Lang,
 ): ReactNode {
-  const re = /(\[\[[^\]]+\]\]|\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g;
+  const re = /(\[\[[^\]]+\]\]|\*\*[^*]+\*\*|\*[^*]+\*|__[^_]+__|`[^`]+`)/g;
   const parts = text.split(re).filter(Boolean);
 
   return parts.map((part, i) => {
     if (part.startsWith("[[") && part.endsWith("]]")) {
       const name = part.slice(2, -2);
-      // Fuzzy match: find entity whose stem matches the wiki link text
       const ent = entities.find((e) => {
         if (e.name.toLowerCase() === name.toLowerCase()) return true;
         if (e.name.length <= 5 || name.length <= 5) return false;
-        // Check if link text starts with entity stem, or entity name starts with link stem
         return (
           name.toLowerCase().startsWith(stemOf(e.name).toLowerCase()) ||
           e.name.toLowerCase().startsWith(stemOf(name).toLowerCase())
@@ -188,6 +186,7 @@ function renderInline(
     }
     if (part.startsWith("**") && part.endsWith("**")) return <strong key={i}>{part.slice(2, -2)}</strong>;
     if (part.startsWith("*") && part.endsWith("*"))   return <em key={i}>{part.slice(1, -1)}</em>;
+    if (part.startsWith("__") && part.endsWith("__")) return <u key={i}>{part.slice(2, -2)}</u>;
     if (part.startsWith("`") && part.endsWith("`"))   return <code key={i}>{part.slice(1, -1)}</code>;
     return <Fragment key={i}>{highlightEntities(part, entities, onEntityClick, lang)}</Fragment>;
   });
