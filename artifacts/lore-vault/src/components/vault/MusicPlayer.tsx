@@ -1,17 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import {
-  Music, Pause, Play, ChevronDown, ChevronUp,
-  SkipForward, SkipBack, Plus, Trash2, Volume2, VolumeX, List, X,
-} from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Music, Pause, Play, SkipForward, SkipBack, Volume2, VolumeX } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
-import { Input } from "@/components/ui/input";
 import { parseEmbed } from "@/lib/musicEmbed";
 
 interface Props {
   url?: string;
   playlist?: string[];
-  onPlaylistChange?: (urls: string[]) => void;
   onPlayingChange?: (playing: boolean) => void;
 }
 
@@ -26,13 +20,13 @@ function buildEmbedUrl(rawUrl: string | null | undefined) {
   if (!info.embedUrl) return null;
   if (info.kind === "youtube") {
     return info.embedUrl
-      .replace("controls=1", "controls=1&enablejsapi=1")
+      .replace("controls=1", "controls=0&enablejsapi=1")
       + "&origin=" + encodeURIComponent(window.location.origin);
   }
   return info.embedUrl;
 }
 
-export const MusicPlayer = ({ url, playlist = [], onPlaylistChange, onPlayingChange }: Props) => {
+export const MusicPlayer = ({ url, playlist = [], onPlayingChange }: Props) => {
   const buildTracks = useCallback(() => {
     const base: string[] = [];
     if (url) base.push(url);
@@ -45,13 +39,15 @@ export const MusicPlayer = ({ url, playlist = [], onPlaylistChange, onPlayingCha
   const [tracks, setTracks] = useState<string[]>(() => buildTracks());
   const [currentIdx, setCurrentIdx] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMinimized, setIsMinimized] = useState(false);
   const [volume, setVolume] = useState(30);
   const [isMuted, setIsMuted] = useState(false);
-  const [showPlaylist, setShowPlaylist] = useState(false);
-  const [addUrl, setAddUrl] = useState("");
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const autoStarted = useRef(false);
+
+  // Sync tracks when props change
+  useEffect(() => {
+    setTracks(buildTracks());
+  }, [buildTracks]);
 
   const currentUrl = tracks[currentIdx] ?? null;
   const embedUrl = buildEmbedUrl(currentUrl);
@@ -99,183 +95,84 @@ export const MusicPlayer = ({ url, playlist = [], onPlaylistChange, onPlayingCha
   const next = () => goTo((currentIdx + 1) % tracks.length);
   const prev = () => goTo((currentIdx - 1 + tracks.length) % tracks.length);
 
-  const addTrack = () => {
-    const trimmed = addUrl.trim();
-    if (!trimmed || tracks.includes(trimmed)) return;
-    const next = [...tracks, trimmed];
-    setTracks(next);
-    onPlaylistChange?.(next.slice(url ? 1 : 0));
-    setAddUrl("");
-  };
-
-  const removeTrack = (i: number) => {
-    const next = tracks.filter((_, idx) => idx !== i);
-    setTracks(next);
-    onPlaylistChange?.(next.slice(url ? 1 : 0));
-    if (currentIdx >= next.length) setCurrentIdx(Math.max(0, next.length - 1));
-  };
-
   if (!embedUrl || tracks.length === 0) return null;
 
-  const shortUrl = (t: string) =>
-    t.replace(/^https?:\/\/(www\.)?/, "").slice(0, 38);
-
   return (
-    <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-2">
+    <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-1.5 group/player">
+      {/* Hidden iframe — audio only, never shown */}
       {isPlaying && (
-        <div className="vault-panel w-[320px] overflow-hidden animate-fade-in">
-          {/* iframe – always rendered when playing, just hidden when minimized */}
-          <div className={isMinimized ? "sr-only pointer-events-none" : ""}>
-            <iframe
-              key={`${currentIdx}::${currentUrl}`}
-              ref={iframeRef}
-              title="Odtwarzacz muzyki"
-              src={embedUrl}
-              allow="autoplay; encrypted-media"
-              className="w-full h-[170px] border-0 rounded-t"
-              onLoad={handleIframeLoad}
+        <div className="sr-only pointer-events-none" aria-hidden>
+          <iframe
+            key={`${currentIdx}::${currentUrl}`}
+            ref={iframeRef}
+            title="Odtwarzacz muzyki"
+            src={embedUrl}
+            allow="autoplay; encrypted-media"
+            className="w-1 h-1"
+            onLoad={handleIframeLoad}
+          />
+        </div>
+      )}
+
+      {/* Volume — only visible on hover */}
+      {isPlaying && (
+        <div className="vault-panel px-3 py-2 w-48 opacity-0 group-hover/player:opacity-100 transition-opacity duration-200 pointer-events-none group-hover/player:pointer-events-auto">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleMute}
+              className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
+              aria-label={isMuted ? "Wyłącz wyciszenie" : "Wycisz"}
+            >
+              {isMuted || volume === 0
+                ? <VolumeX className="h-3.5 w-3.5" />
+                : <Volume2 className="h-3.5 w-3.5" />}
+            </button>
+            <Slider
+              value={[isMuted ? 0 : volume]}
+              onValueChange={handleVolumeChange}
+              min={0} max={100} step={1}
+              className="flex-1"
             />
-          </div>
-
-          {/* Controls */}
-          <div className="p-2 space-y-2">
-            {/* Track row */}
-            <div className="flex items-center gap-1">
-              {tracks.length > 1 && (
-                <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={prev} aria-label="Poprzedni">
-                  <SkipBack className="h-3 w-3" />
-                </Button>
-              )}
-
-              <div className="flex-1 min-w-0 px-1">
-                <p className="font-mono text-[9px] uppercase tracking-widest text-[hsl(var(--rune))] truncate">
-                  {info.label}{tracks.length > 1 ? ` · ${currentIdx + 1}/${tracks.length}` : ""}
-                </p>
-                <p className="font-mono text-[9px] text-muted-foreground truncate">
-                  {shortUrl(currentUrl ?? "")}
-                </p>
-              </div>
-
-              {tracks.length > 1 && (
-                <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0" onClick={next} aria-label="Następny">
-                  <SkipForward className="h-3 w-3" />
-                </Button>
-              )}
-            </div>
-
-            {/* Volume row */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={toggleMute}
-                className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
-                aria-label={isMuted ? "Wyłącz wyciszenie" : "Wycisz"}
-              >
-                {isMuted || volume === 0
-                  ? <VolumeX className="h-3.5 w-3.5" />
-                  : <Volume2 className="h-3.5 w-3.5" />}
-              </button>
-              <Slider
-                value={[isMuted ? 0 : volume]}
-                onValueChange={handleVolumeChange}
-                min={0}
-                max={100}
-                step={1}
-                className="flex-1"
-              />
-              <span className="font-mono text-[9px] text-muted-foreground w-6 text-right shrink-0">
-                {isMuted ? 0 : volume}
-              </span>
-            </div>
-
-            {/* Playlist panel */}
-            {showPlaylist && (
-              <div className="space-y-1 border-t border-border/40 pt-2">
-                <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground mb-1">
-                  Playlista
-                </p>
-                <div className="max-h-36 overflow-y-auto space-y-0.5 pr-1">
-                  {tracks.map((t, i) => (
-                    <div
-                      key={i}
-                      className={`flex items-center gap-1.5 rounded px-2 py-1 cursor-pointer transition-colors ${
-                        i === currentIdx
-                          ? "bg-[hsl(var(--rune)/0.15)] text-[hsl(var(--rune))]"
-                          : "hover:bg-muted/40 text-muted-foreground"
-                      }`}
-                      onClick={() => goTo(i)}
-                    >
-                      <Music className="h-2.5 w-2.5 shrink-0" />
-                      <span className="flex-1 font-mono text-[9px] truncate">{shortUrl(t)}</span>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); removeTrack(i); }}
-                        className="opacity-40 hover:opacity-100 transition-opacity"
-                        aria-label="Usuń utwór"
-                      >
-                        <Trash2 className="h-2.5 w-2.5" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Add track */}
-                <div className="flex gap-1 pt-1">
-                  <Input
-                    value={addUrl}
-                    onChange={(e) => setAddUrl(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && addTrack()}
-                    placeholder="Dodaj URL YouTube / SC…"
-                    className="h-7 text-[10px] font-mono flex-1"
-                  />
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    className="h-7 w-7 shrink-0"
-                    onClick={addTrack}
-                    aria-label="Dodaj"
-                  >
-                    <Plus className="h-3 w-3" />
-                  </Button>
-                </div>
-              </div>
-            )}
+            <span className="font-mono text-[9px] text-muted-foreground w-5 text-right shrink-0">
+              {isMuted ? 0 : volume}
+            </span>
           </div>
         </div>
       )}
 
-      {/* Button row */}
-      <div className="flex items-center gap-1.5">
-        {isPlaying && (
-          <>
-            <Button
-              size="icon"
-              variant="outline"
-              className="h-9 w-9"
-              onClick={() => { setShowPlaylist(v => !v); if (isMinimized) setIsMinimized(false); }}
-              aria-label="Playlista"
-            >
-              <List className="h-4 w-4" />
-            </Button>
-            <Button
-              size="icon"
-              variant="outline"
-              className="h-9 w-9"
-              onClick={() => setIsMinimized(v => !v)}
-              aria-label={isMinimized ? "Pokaż wideo" : "Minimalizuj"}
-            >
-              {isMinimized ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            </Button>
-          </>
+      {/* Compact control pill */}
+      <div className="vault-panel flex items-center gap-0.5 px-2 py-1.5">
+        {/* Prev */}
+        {isPlaying && tracks.length > 1 && (
+          <button onClick={prev} aria-label="Poprzedni"
+            className="h-6 w-6 grid place-items-center text-muted-foreground hover:text-foreground transition-colors rounded">
+            <SkipBack className="h-3 w-3" />
+          </button>
         )}
-        <Button
-          className="pixel-btn"
-          onClick={() => {
-            if (!isPlaying) { setIsPlaying(true); setIsMinimized(false); }
-            else setIsPlaying(false);
-          }}
-          aria-label={isPlaying ? "Zatrzymaj" : "Odtwórz muzykę"}
+
+        {/* Play / Pause */}
+        <button
+          onClick={() => setIsPlaying(v => !v)}
+          aria-label={isPlaying ? "Pauza" : "Odtwórz muzykę"}
+          className="h-7 w-7 grid place-items-center rounded-full bg-[hsl(var(--rune)/0.15)] hover:bg-[hsl(var(--rune)/0.25)] text-[hsl(var(--rune))] transition-colors"
         >
-          {isPlaying ? <><Pause className="h-3 w-3 mr-1.5" />Pauza</> : <><Music className="h-3 w-3 mr-1.5" />Muzyka</>}
-        </Button>
+          {isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Music className="h-3.5 w-3.5" />}
+        </button>
+
+        {/* Track label — only when playing */}
+        {isPlaying && (
+          <span className="font-mono text-[9px] text-muted-foreground truncate max-w-[120px] px-1.5">
+            {info.label}{tracks.length > 1 ? ` ${currentIdx + 1}/${tracks.length}` : ""}
+          </span>
+        )}
+
+        {/* Next */}
+        {isPlaying && tracks.length > 1 && (
+          <button onClick={next} aria-label="Następny"
+            className="h-6 w-6 grid place-items-center text-muted-foreground hover:text-foreground transition-colors rounded">
+            <SkipForward className="h-3 w-3" />
+          </button>
+        )}
       </div>
     </div>
   );

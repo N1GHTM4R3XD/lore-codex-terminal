@@ -126,7 +126,7 @@ const CharacterPage = () => {
       </div>
 
       <main className="relative z-10">
-        <Hero state={character} update={update} musicPlaying={musicPlaying} />
+        <Hero state={character} update={update} />
 
         <div className="container py-10">
           <div className="flex justify-center">
@@ -166,7 +166,6 @@ const CharacterPage = () => {
       <MusicPlayer
         url={character.musicUrl}
         playlist={character.musicPlaylist ?? []}
-        onPlaylistChange={(urls) => update({ musicPlaylist: urls })}
         onPlayingChange={setMusicPlaying}
       />
     </div>

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Sliders, Plus, Trash2, Palette as PaletteIcon, User, ChevronDown, ChevronUp } from "lucide-react";
+import { Sliders, Plus, Trash2, Palette as PaletteIcon, User, ChevronDown, ChevronUp, Music } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -303,6 +303,59 @@ function PaletteCreator({ onCreate }: { onCreate: (p: CustomPalette) => void }) 
   );
 }
 
+/* ── Playlist Editor ──────────────────────────────────────── */
+function PlaylistEditor({ playlist, onChange }: { playlist: string[]; onChange: (urls: string[]) => void }) {
+  const [addUrl, setAddUrl] = useState("");
+
+  const shortUrl = (t: string) => t.replace(/^https?:\/\/(www\.)?/, "").slice(0, 44);
+
+  const add = () => {
+    const t = addUrl.trim();
+    if (!t || playlist.includes(t)) return;
+    onChange([...playlist, t]);
+    setAddUrl("");
+  };
+
+  const remove = (i: number) => onChange(playlist.filter((_, idx) => idx !== i));
+
+  return (
+    <div className="space-y-2">
+      <Label className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground block">
+        Playlista dodatkowa <span className="normal-case tracking-normal">({playlist.length} {playlist.length === 1 ? "utwór" : "utworów"})</span>
+      </Label>
+
+      {playlist.length > 0 && (
+        <div className="space-y-1 max-h-40 overflow-y-auto pr-1">
+          {playlist.map((t, i) => (
+            <div key={i} className="flex items-center gap-2 group rounded px-2 py-1 hover:bg-muted/40">
+              <Music className="h-3 w-3 shrink-0 text-muted-foreground" />
+              <span className="flex-1 font-mono text-[10px] text-muted-foreground truncate">{shortUrl(t)}</span>
+              <button onClick={() => remove(i)}
+                className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                aria-label="Usuń utwór">
+                <Trash2 className="h-3 w-3" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="flex gap-1.5">
+        <Input
+          value={addUrl}
+          onChange={(e) => setAddUrl(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && add()}
+          placeholder="Dodaj URL YouTube / SoundCloud…"
+          className="h-8 text-[10px] font-mono flex-1"
+        />
+        <Button size="sm" variant="outline" onClick={add} className="h-8 px-2 font-mono text-xs" aria-label="Dodaj">
+          <Plus className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 /* ── Mini card preview ─────────────────────────────────────── */
 function FramePreview({ character, frame, avatarBorder, fonts }: {
   character: Character;
@@ -571,20 +624,32 @@ export const CardCustomizer = ({ character, update, customPalettes, addCustomPal
           </section>
 
           {/* ── Music ── */}
-          <section className="pt-2 border-t border-border">
-            <Label htmlFor="music-url" className="font-mono text-xs uppercase tracking-widest text-[hsl(var(--rune))]">
-              Muzyka w tle (YouTube / SoundCloud)
+          <section className="pt-2 border-t border-border space-y-3">
+            <Label className="font-mono text-xs uppercase tracking-widest text-[hsl(var(--rune))] block">
+              Muzyka w tle
             </Label>
-            <Input
-              id="music-url"
-              defaultValue={character.musicUrl ?? ""}
-              placeholder="https://www.youtube.com/watch?v=... lub https://soundcloud.com/..."
-              onBlur={(e) => update({ musicUrl: e.target.value || undefined })}
-              className="mt-2"
-            />
-            <p className="text-xs text-muted-foreground mt-1 font-mono">
-              Wklej link i kliknij poza polem, aby zapisać.
+            <p className="font-mono text-[9px] text-muted-foreground -mt-2">
+              YouTube lub SoundCloud · odtwarzanie audio w tle bez wideo
             </p>
+
+            {/* Primary URL */}
+            <div>
+              <Label htmlFor="music-url" className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground block mb-1">
+                Główny link
+              </Label>
+              <Input
+                id="music-url"
+                defaultValue={character.musicUrl ?? ""}
+                placeholder="https://www.youtube.com/watch?v=..."
+                onBlur={(e) => update({ musicUrl: e.target.value || undefined })}
+              />
+            </div>
+
+            {/* Playlist */}
+            <PlaylistEditor
+              playlist={character.musicPlaylist ?? []}
+              onChange={(urls) => update({ musicPlaylist: urls })}
+            />
           </section>
         </div>
       </DialogContent>
