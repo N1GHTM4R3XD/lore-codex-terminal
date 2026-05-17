@@ -157,6 +157,7 @@ export interface Character {
   font: FontTheme;
   fonts?: CardFonts;
   musicUrl?: string;
+  musicPlaylist?: string[];
 }
 
 export type VaultState = Character;

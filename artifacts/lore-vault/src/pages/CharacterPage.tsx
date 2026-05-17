@@ -29,6 +29,7 @@ const CharacterPage = () => {
   const [tab, setTab] = useState<TabId>("lore");
   const [focusEntity, setFocusEntity] = useState<string | null>(null);
   const [savedFlash, setSavedFlash] = useState(false);
+  const [musicPlaying, setMusicPlaying] = useState(false);
 
   // Per-card palette on document root so global components (modals, popovers) follow.
   useEffect(() => {
@@ -123,7 +124,7 @@ const CharacterPage = () => {
       </div>
 
       <main className="relative z-10">
-        <Hero state={character} update={update} />
+        <Hero state={character} update={update} musicPlaying={musicPlaying} />
 
         <div className="container py-10">
           <div className="flex justify-center">
@@ -158,7 +159,12 @@ const CharacterPage = () => {
         </footer>
       </main>
 
-      <MusicPlayer url={character.musicUrl} />
+      <MusicPlayer
+        url={character.musicUrl}
+        playlist={character.musicPlaylist ?? []}
+        onPlaylistChange={(urls) => update({ musicPlaylist: urls })}
+        onPlayingChange={setMusicPlaying}
+      />
     </div>
   );
 };

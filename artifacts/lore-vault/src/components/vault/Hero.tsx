@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Pencil, Check, Image as ImageIcon, User, Upload, Link } from "lucide-react";
+import { Pencil, Check, Image as ImageIcon, User, Upload, Link, Music } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { VaultState } from "@/lib/vault-types";
@@ -7,6 +7,7 @@ import { VaultState } from "@/lib/vault-types";
 interface Props {
   state: VaultState;
   update: (patch: Partial<VaultState>) => void;
+  musicPlaying?: boolean;
 }
 
 /** Reads a File and returns a data: URI string. */
@@ -130,7 +131,7 @@ function ImagePicker({
   );
 }
 
-export const Hero = ({ state, update }: Props) => {
+export const Hero = ({ state, update, musicPlaying }: Props) => {
   const [editing, setEditing] = useState(false);
   const [avOpen, setAvOpen] = useState(false);
   const [bgOpen, setBgOpen] = useState(false);
@@ -204,9 +205,20 @@ export const Hero = ({ state, update }: Props) => {
               </>
             ) : (
               <>
-                <h1 className="text-4xl md:text-6xl lg:text-7xl font-display rune-text text-balance leading-tight">
-                  {state.name}
-                </h1>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <h1 className="text-4xl md:text-6xl lg:text-7xl font-display rune-text text-balance leading-tight">
+                    {state.name}
+                  </h1>
+                  {musicPlaying && (
+                    <span
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full vault-panel border border-[hsl(var(--rune)/0.4)] text-[hsl(var(--rune))] font-mono text-[9px] uppercase tracking-widest animate-fade-in"
+                      aria-label="Muzyka gra"
+                    >
+                      <Music className="h-2.5 w-2.5 animate-pulse" />
+                      Leci
+                    </span>
+                  )}
+                </div>
                 <p className="text-lg md:text-xl italic text-[hsl(var(--ink))] max-w-2xl text-balance font-body">
                   {state.tagline}
                 </p>
