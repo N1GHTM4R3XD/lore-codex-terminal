@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Sliders, Plus, Trash2, Palette as PaletteIcon, User } from "lucide-react";
+import { Sliders, Plus, Trash2, Palette as PaletteIcon, User, ChevronDown, ChevronUp } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { Character, CardAnimation, FrameStyle, AvatarBorderStyle, CustomPalette } from "@/lib/vault-types";
 import { FONT_PRESETS, fontFamilyStack, loadFont, loadFonts } from "@/lib/fontLoader";
 import { AVATAR_BORDER_CLASS } from "@/components/vault/CharacterCard";
+import { completePalette, darkenHex, deriveRune, lightenHex } from "@/lib/paletteUtils";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -82,13 +83,21 @@ const FONT_CATEGORIES: { id: string; label: string }[] = [
   { id: "display",     label: "Inne" },
 ];
 
-function FontSelect({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+/* ── Improved FontSelect ─────────────────────────────────────── */
+function FontSelect({
+  label, hint, value, sampleText, onChange,
+}: {
+  label: string; hint: string; value: string; sampleText: string; onChange: (v: string) => void;
+}) {
   useEffect(() => { loadFont(value); }, [value]);
   return (
-    <div>
-      <Label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{label}</Label>
+    <div className="space-y-1.5">
+      <div>
+        <Label className="font-mono text-[10px] uppercase tracking-widest text-[hsl(var(--rune))]">{label}</Label>
+        <p className="font-mono text-[9px] text-muted-foreground">{hint}</p>
+      </div>
       <Select value={value} onValueChange={(v) => { loadFont(v); onChange(v); }}>
-        <SelectTrigger className="mt-1 h-9" style={{ fontFamily: fontFamilyStack(value) }}>
+        <SelectTrigger className="h-9 border-border" style={{ fontFamily: fontFamilyStack(value) }}>
           <SelectValue placeholder="Wybierz font" />
         </SelectTrigger>
         <SelectContent className="max-h-72">
@@ -100,7 +109,7 @@ function FontSelect({ label, value, onChange }: { label: string; value: string; 
                 <SelectLabel className="font-mono text-[10px] uppercase tracking-widest">{cat.label}</SelectLabel>
                 {fonts.map((f) => (
                   <SelectItem key={f.family} value={f.family} onPointerEnter={() => loadFont(f.family)}>
-                    <span style={{ fontFamily: fontFamilyStack(f.family) }}>{f.family}</span>
+                    <span style={{ fontFamily: fontFamilyStack(f.family), fontSize: "0.9rem" }}>{f.family}</span>
                   </SelectItem>
                 ))}
               </SelectGroup>
@@ -108,23 +117,57 @@ function FontSelect({ label, value, onChange }: { label: string; value: string; 
           })}
         </SelectContent>
       </Select>
+      {/* Live sample */}
+      <div
+        className="vault-panel px-3 py-2 text-center min-h-[2.5rem] grid place-items-center"
+        style={{ fontFamily: fontFamilyStack(value) }}
+      >
+        <span className="text-lg leading-snug text-[hsl(var(--rune))]">{sampleText || value}</span>
+      </div>
     </div>
   );
 }
 
+/* ── Color field with picker + hex input ──────────────────────── */
+function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="flex items-center gap-2">
+      <input
+        type="color"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-9 w-10 shrink-0 rounded border border-border bg-transparent cursor-pointer p-0.5"
+      />
+      <div className="flex-1 min-w-0">
+        <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground mb-0.5">{label}</p>
+        <Input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="font-mono text-xs h-7 py-0"
+          placeholder="#rrggbb"
+        />
+      </div>
+    </div>
+  );
+}
+
+/* ── Palette Creator — variable number of colors ─────────────── */
 function PaletteCreator({ onCreate }: { onCreate: (p: CustomPalette) => void }) {
   const [open, setOpen] = useState(false);
-  const [draft, setDraft] = useState<Omit<CustomPalette, "id">>({
-    label: "Mój motyw",
-    background: "#0e0a07", card: "#1a1410", foreground: "#f0e6d2",
-    primary: "#cf9d7b", accent: "#a35a3a", rune: "#f3c98b",
+  const [showOptional, setShowOptional] = useState(false);
+  const [draft, setDraft] = useState<CustomPalette>({
+    id: "", label: "Mój motyw",
+    background: "#0e0a07",
+    foreground: "#f0e6d2",
+    primary: "#cf9d7b",
   });
-  const fields: { key: keyof typeof draft; label: string; type?: string }[] = [
-    { key: "label", label: "Nazwa", type: "text" },
-    { key: "background", label: "Tło" }, { key: "card", label: "Panel" },
-    { key: "foreground", label: "Tekst" }, { key: "primary", label: "Główny" },
-    { key: "accent", label: "Akcent" }, { key: "rune", label: "Runa" },
-  ];
+
+  const filled = completePalette(draft);
+  const swatchColors = [filled.background, filled.card, filled.foreground, filled.primary, filled.accent, filled.rune];
+
+  const set = (k: keyof CustomPalette, v: string) => setDraft((d) => ({ ...d, [k]: v }));
+  const clearOptional = (k: "card" | "accent" | "rune") => setDraft((d) => { const n = { ...d }; delete n[k]; return n; });
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -132,42 +175,128 @@ function PaletteCreator({ onCreate }: { onCreate: (p: CustomPalette) => void }) 
           <Plus className="h-3 w-3 mr-1" />Własna paleta
         </Button>
       </DialogTrigger>
-      <DialogContent className="vault-panel max-w-md">
+      <DialogContent className="vault-panel max-w-sm">
         <DialogHeader>
           <DialogTitle className="font-display rune-text text-xl flex items-center gap-2">
             <PaletteIcon className="h-5 w-5" /> Nowa paleta
           </DialogTitle>
           <DialogDescription className="font-mono text-xs uppercase tracking-widest">
-            Pick 6 colors · podgląd na żywo
+            3 wymagane + opcjonalne kolory
           </DialogDescription>
         </DialogHeader>
-        <div className="grid gap-3 pt-2">
-          {fields.map((f) => (
-            <div key={f.key} className="flex items-center gap-3">
-              <Label className="w-20 font-mono text-xs uppercase tracking-widest">{f.label}</Label>
-              {f.type === "text" ? (
-                <Input value={draft[f.key] as string} onChange={(e) => setDraft({ ...draft, [f.key]: e.target.value })} className="flex-1" />
-              ) : (
-                <>
-                  <input type="color" value={draft[f.key] as string}
-                    onChange={(e) => setDraft({ ...draft, [f.key]: e.target.value })}
-                    className="h-9 w-12 rounded border border-border bg-transparent cursor-pointer" />
-                  <Input value={draft[f.key] as string}
-                    onChange={(e) => setDraft({ ...draft, [f.key]: e.target.value })}
-                    className="font-mono text-xs flex-1" />
-                </>
-              )}
+
+        <div className="space-y-3 pt-1">
+          {/* Name */}
+          <div className="flex items-center gap-2">
+            <Label className="w-16 font-mono text-[10px] uppercase tracking-widest shrink-0">Nazwa</Label>
+            <Input value={draft.label} onChange={(e) => set("label", e.target.value)} className="flex-1" />
+          </div>
+
+          {/* Required 3 */}
+          <div className="border border-border rounded p-3 space-y-2.5">
+            <p className="font-mono text-[9px] uppercase tracking-widest text-[hsl(var(--rune))] mb-1">Wymagane</p>
+            <ColorField label="Tło" value={draft.background} onChange={(v) => set("background", v)} />
+            <ColorField label="Tekst" value={draft.foreground} onChange={(v) => set("foreground", v)} />
+            <ColorField label="Główny akcent" value={draft.primary} onChange={(v) => set("primary", v)} />
+          </div>
+
+          {/* Optional 3 */}
+          <div className="border border-border rounded p-3 space-y-2.5">
+            <button
+              type="button"
+              onClick={() => setShowOptional((v) => !v)}
+              className="flex items-center justify-between w-full font-mono text-[9px] uppercase tracking-widest text-muted-foreground hover:text-foreground transition"
+            >
+              <span>Opcjonalne (auto-pochodne gdy puste)</span>
+              {showOptional ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            </button>
+
+            {showOptional && (
+              <div className="space-y-2.5 pt-1">
+                {/* Card */}
+                <div className="flex items-start gap-2">
+                  <div className="flex-1">
+                    <ColorField
+                      label={`Panel ${!draft.card ? `(auto: ${lightenHex(draft.background, 0.07)})` : ""}`}
+                      value={draft.card ?? lightenHex(draft.background, 0.07)}
+                      onChange={(v) => set("card", v)}
+                    />
+                  </div>
+                  {draft.card && (
+                    <button title="Resetuj do auto" onClick={() => clearOptional("card")}
+                      className="mt-5 text-muted-foreground hover:text-destructive shrink-0">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+                {/* Accent */}
+                <div className="flex items-start gap-2">
+                  <div className="flex-1">
+                    <ColorField
+                      label={`Akcent ${!draft.accent ? `(auto: ${darkenHex(draft.primary, 0.18)})` : ""}`}
+                      value={draft.accent ?? darkenHex(draft.primary, 0.18)}
+                      onChange={(v) => set("accent", v)}
+                    />
+                  </div>
+                  {draft.accent && (
+                    <button title="Resetuj do auto" onClick={() => clearOptional("accent")}
+                      className="mt-5 text-muted-foreground hover:text-destructive shrink-0">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+                {/* Rune */}
+                <div className="flex items-start gap-2">
+                  <div className="flex-1">
+                    <ColorField
+                      label={`Runa ${!draft.rune ? `(auto: ${deriveRune(draft.primary)})` : ""}`}
+                      value={draft.rune ?? deriveRune(draft.primary)}
+                      onChange={(v) => set("rune", v)}
+                    />
+                  </div>
+                  {draft.rune && (
+                    <button title="Resetuj do auto" onClick={() => clearOptional("rune")}
+                      className="mt-5 text-muted-foreground hover:text-destructive shrink-0">
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Live swatch preview */}
+          <div>
+            <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground mb-1.5">Podgląd:</p>
+            <div className="h-10 grid rounded overflow-hidden border border-border" style={{ gridTemplateColumns: `repeat(${swatchColors.length}, 1fr)` }}>
+              {swatchColors.map((c, i) => (
+                <div key={i} style={{ background: c }} title={c} />
+              ))}
             </div>
-          ))}
-          <div className="h-16 mt-2 grid grid-cols-6 rounded overflow-hidden border border-border">
-            {(["background","card","foreground","primary","accent","rune"] as const).map((k) => (
-              <div key={k} style={{ background: draft[k] }} title={k} />
-            ))}
+            {/* Mini card mockup */}
+            <div className="mt-2 rounded border p-3 flex items-center gap-3" style={{ background: filled.background, borderColor: filled.primary + "55" }}>
+              <div className="h-8 w-8 rounded-full shrink-0 border-2" style={{ background: filled.card, borderColor: filled.rune }} />
+              <div className="min-w-0">
+                <p className="text-sm font-semibold truncate" style={{ color: filled.rune }}>{draft.label}</p>
+                <p className="text-[10px] truncate" style={{ color: filled.foreground + "99" }}>Podgląd tekstu postaci</p>
+              </div>
+            </div>
           </div>
         </div>
+
         <DialogFooter>
-          <Button onClick={() => { const p: CustomPalette = { ...draft, id: `custom_${Date.now().toString(36)}` }; onCreate(p); setOpen(false); }}
-            className="pixel-btn">Zapisz paletę</Button>
+          <Button
+            onClick={() => {
+              const p: CustomPalette = { ...draft, id: `custom_${Date.now().toString(36)}` };
+              onCreate(p);
+              setOpen(false);
+              setDraft({ id: "", label: "Mój motyw", background: "#0e0a07", foreground: "#f0e6d2", primary: "#cf9d7b" });
+              setShowOptional(false);
+            }}
+            className="pixel-btn"
+          >
+            Zapisz paletę
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -232,11 +361,10 @@ export const CardCustomizer = ({ character, update, customPalettes, addCustomPal
   const allPalettes = useMemo(
     () => [
       ...BUILTIN_PALETTES,
-      ...customPalettes.map((p) => ({
-        id: p.id, label: p.label,
-        swatch: `linear-gradient(135deg, ${p.primary}, ${p.rune})`,
-        custom: true,
-      })),
+      ...customPalettes.map((p) => {
+        const filled = completePalette(p);
+        return { id: p.id, label: p.label, swatch: `linear-gradient(135deg, ${filled.primary}, ${filled.rune})`, custom: true };
+      }),
     ],
     [customPalettes],
   );
@@ -316,7 +444,7 @@ export const CardCustomizer = ({ character, update, customPalettes, addCustomPal
 
             {/* Live frame + avatar preview */}
             <div className="space-y-1.5">
-              <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Podgląd na żywo:</p>
+              <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Podgląd ramki:</p>
               <FramePreview
                 character={character}
                 frame={currentFrame}
@@ -396,26 +524,48 @@ export const CardCustomizer = ({ character, update, customPalettes, addCustomPal
 
           {/* ── Typography ── */}
           <section className="border-t border-border pt-5">
-            <Label className="font-mono text-xs uppercase tracking-widest text-[hsl(var(--rune))] mb-2 block">
-              Typografia (Google Fonts)
+            <Label className="font-mono text-xs uppercase tracking-widest text-[hsl(var(--rune))] mb-1 block">
+              Typografia
             </Label>
-            <div className="grid sm:grid-cols-3 gap-3">
-              <FontSelect label="Nagłówki" value={fonts.display}
-                onChange={(v) => update({ font: v, fonts: { ...fonts, display: v } })} />
-              <FontSelect label="Tekst" value={fonts.body}
-                onChange={(v) => update({ fonts: { ...fonts, body: v } })} />
-              <FontSelect label="Etykiety" value={fonts.mono}
-                onChange={(v) => update({ fonts: { ...fonts, mono: v } })} />
+            <p className="font-mono text-[9px] text-muted-foreground mb-4">
+              Zmiana widoczna na żywo — nagłówki, tekst i etykiety można dobrać niezależnie.
+            </p>
+
+            <div className="grid sm:grid-cols-3 gap-4">
+              <FontSelect
+                label="Nagłówki"
+                hint="Imię postaci, tytuły sekcji"
+                value={fonts.display}
+                sampleText={character.name || "Nagłówek"}
+                onChange={(v) => update({ font: v, fonts: { ...fonts, display: v } })}
+              />
+              <FontSelect
+                label="Tekst"
+                hint="Lore, dziennik, rękopis"
+                value={fonts.body}
+                sampleText={character.tagline || "Tekst narracji"}
+                onChange={(v) => update({ fonts: { ...fonts, body: v } })}
+              />
+              <FontSelect
+                label="Etykiety"
+                hint="Tagi, chipsy, interfejs"
+                value={fonts.mono}
+                sampleText="LORE VAULT · UI"
+                onChange={(v) => update({ fonts: { ...fonts, mono: v } })}
+              />
             </div>
-            <div className="mt-3 vault-panel p-3 text-center">
-              <p style={{ fontFamily: fontFamilyStack(fonts.display) }} className="text-2xl text-[hsl(var(--rune))]">
-                {character.name}
+
+            {/* Combined live preview */}
+            <div className="mt-4 vault-panel p-4 space-y-1">
+              <p className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground mb-2">Podgląd na żywo:</p>
+              <p style={{ fontFamily: fontFamilyStack(fonts.display) }} className="text-2xl text-[hsl(var(--rune))] leading-tight">
+                {character.name || "Imię Postaci"}
               </p>
-              <p style={{ fontFamily: fontFamilyStack(fonts.body) }} className="text-sm italic">
-                {character.tagline}
+              <p style={{ fontFamily: fontFamilyStack(fonts.body) }} className="text-base italic text-foreground/80 leading-snug">
+                {character.tagline || "Tagline lub motto postaci, które opowiada jej historię."}
               </p>
-              <p style={{ fontFamily: fontFamilyStack(fonts.mono) }} className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1">
-                Lore Vault · Codex Terminal
+              <p style={{ fontFamily: fontFamilyStack(fonts.mono) }} className="text-[10px] uppercase tracking-widest text-muted-foreground mt-2">
+                Lore Vault · Codex Terminal · {fonts.mono}
               </p>
             </div>
           </section>

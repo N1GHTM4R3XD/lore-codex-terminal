@@ -194,18 +194,26 @@ export const Hero = ({ state, update, musicPlaying }: Props) => {
           {/* Name + tagline */}
           <div className="space-y-4 animate-fade-in">
             {editing ? (
-              <>
-                <Input
-                  value={state.name}
-                  onChange={(e) => update({ name: e.target.value })}
-                  className="text-3xl md:text-5xl h-auto py-3 font-display bg-background/40"
-                />
-                <Input
-                  value={state.tagline}
-                  onChange={(e) => update({ tagline: e.target.value })}
-                  className="font-body italic bg-background/40"
-                />
-              </>
+              <div className="vault-panel p-4 rounded-lg space-y-3 backdrop-blur-sm">
+                <div>
+                  <label className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground block mb-1">Imię / nazwa postaci</label>
+                  <Input
+                    autoFocus
+                    value={state.name}
+                    onChange={(e) => update({ name: e.target.value })}
+                    className="text-xl md:text-2xl h-auto py-2.5 font-display bg-card border-[hsl(var(--rune)/0.3)] focus:border-[hsl(var(--rune))]"
+                  />
+                </div>
+                <div>
+                  <label className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground block mb-1">Tagline / motto</label>
+                  <Input
+                    value={state.tagline}
+                    onChange={(e) => update({ tagline: e.target.value })}
+                    className="font-body italic bg-card border-[hsl(var(--rune)/0.3)] focus:border-[hsl(var(--rune))]"
+                    placeholder="Krótkie motto lub opis postaci…"
+                  />
+                </div>
+              </div>
             ) : (
               <>
                 <div className="flex items-center gap-3 flex-wrap">

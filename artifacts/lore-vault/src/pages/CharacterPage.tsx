@@ -37,12 +37,14 @@ const CharacterPage = () => {
     return () => { document.documentElement.dataset.palette = "pixel-dark"; };
   }, [character?.palette]);
 
-  // Load all character fonts dynamically.
+  // Load all character fonts dynamically and apply as CSS variables on the page root.
+  const charFonts = character
+    ? (character.fonts ?? { display: character.font || "Pixelify Sans", body: "Cormorant Garamond", mono: "JetBrains Mono" })
+    : null;
   useEffect(() => {
-    if (!character) return;
-    const f = character.fonts ?? { display: character.font, body: "Cormorant Garamond", mono: "JetBrains Mono" };
-    loadFonts([f.display, f.body, f.mono]);
-  }, [character?.fonts?.display, character?.fonts?.body, character?.fonts?.mono]);
+    if (!charFonts) return;
+    loadFonts([charFonts.display, charFonts.body, charFonts.mono]);
+  }, [charFonts?.display, charFonts?.body, charFonts?.mono]);
 
   // Autosave flash
   useEffect(() => {

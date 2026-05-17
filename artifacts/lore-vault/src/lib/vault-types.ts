@@ -109,16 +109,16 @@ export interface CardFonts {
   mono: string;     // labels / chips
 }
 
-/** A user-defined palette. Stored as 6 colors -> turned into CSS vars. */
+/** A user-defined palette. Stored as 3–6 colors -> turned into CSS vars. */
 export interface CustomPalette {
   id: string;         // "custom_xxx"
   label: string;
-  background: string; // hex
-  card: string;
-  primary: string;
-  accent: string;
-  rune: string;
-  foreground: string;
+  background: string; // hex — required
+  foreground: string; // hex — required
+  primary: string;    // hex — required
+  card?: string;      // auto-derived from background if absent
+  accent?: string;    // auto-derived from primary if absent
+  rune?: string;      // auto-derived toward gold from primary if absent
 }
 
 export interface Folder {
