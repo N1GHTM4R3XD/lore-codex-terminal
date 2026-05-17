@@ -7,7 +7,8 @@ export type CardAnimation =
   | "none" | "rain" | "fire" | "stars" | "embers" | "void"
   | "leaves" | "fog" | "bubbles" | "snow";
 
-export type FrameStyle = "pixel" | "ornament" | "neon" | "parchment" | "none";
+export type FrameStyle = "pixel" | "ornament" | "neon" | "parchment" | "none" | "arcane" | "gothic" | "circuit" | "minimal";
+export type AvatarBorderStyle = "rune" | "double" | "glow" | "pixel" | "none" | "thin" | "ornate";
 
 /** Font is now a free-form Google Font family name. */
 export type FontTheme = string;
@@ -166,6 +167,8 @@ export interface Character {
   palette: Palette;
   animation: CardAnimation;
   frame: FrameStyle;
+  avatarBorder?: AvatarBorderStyle;
+  bgOpacity?: number;           // 0–100, how visible background image is; default 65
   /** Back-compat: legacy single font theme. Used as display if `fonts` missing. */
   font: FontTheme;
   fonts?: CardFonts;

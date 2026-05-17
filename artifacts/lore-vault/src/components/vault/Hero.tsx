@@ -142,7 +142,10 @@ export const Hero = ({ state, update, musicPlaying }: Props) => {
       {state.background && (
         <div
           className="absolute inset-0 -z-10 bg-cover bg-center animate-fade-in"
-          style={{ backgroundImage: `url("${state.background}")` }}
+          style={{
+            backgroundImage: `url("${state.background}")`,
+            opacity: (state.bgOpacity ?? 85) / 100,
+          }}
         />
       )}
       <div className="absolute inset-0 -z-10 bg-gradient-hero" />
