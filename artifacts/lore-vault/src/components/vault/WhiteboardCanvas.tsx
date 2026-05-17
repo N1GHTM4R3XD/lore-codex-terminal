@@ -185,7 +185,7 @@ export const WhiteboardCanvas = ({ board, onChange, title = "Tablica", hideHeade
   const dragNoteRef = useRef<{ id: string; ox: number; oy: number } | null>(null);
 
   const vpRef = useRef(vp);
-  useEffect(() => { vpRef.current = vp; }, [vp]);
+  vpRef.current = vp; // sync during render — no effect needed
 
   /* lock body scroll in fullscreen on mobile */
   useEffect(() => {
@@ -239,7 +239,7 @@ export const WhiteboardCanvas = ({ board, onChange, title = "Tablica", hideHeade
     }
   }, [board.strokes]);
 
-  useEffect(() => { repaint(); }, [repaint]);
+  useEffect(() => { repaint(); }, [repaint, vp]);
 
   /* ── keyboard: undo/redo & ESC fullscreen ───────────────────── */
   useEffect(() => {
