@@ -1,15 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Sliders, Plus, Trash2, Palette as PaletteIcon, User, ChevronDown, ChevronUp, Music, Upload } from "lucide-react";
+import { Sliders, Plus, Trash2, Palette as PaletteIcon, User, ChevronDown, ChevronUp, Music, Upload, ImagePlus, ChevronRight } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { Character, CardAnimation, FrameStyle, AvatarBorderStyle, CustomPalette, CustomFont } from "@/lib/vault-types";
 import { FONT_PRESETS, fontFamilyStack, loadFont, loadFonts, loadCustomFont } from "@/lib/fontLoader";
 import { AVATAR_BORDER_CLASS } from "@/components/vault/CharacterCard";
-import { completePalette, darkenHex, deriveRune, lightenHex } from "@/lib/paletteUtils";
+import { completePalette, darkenHex, deriveRune, lightenHex, extractColorsFromFile } from "@/lib/paletteUtils";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -573,68 +574,86 @@ export const CardCustomizer = ({ character, update, customPalettes, addCustomPal
 
           {/* ── Frame ── */}
           <section className="pt-5 border-t border-border">
-            <Label className="font-mono text-xs uppercase tracking-widest text-[hsl(var(--rune))] mb-3 block">
-              Ramka karty
-            </Label>
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-4">
-              {FRAMES.map((f) => (
-                <button
-                  key={f.id}
-                  onClick={() => update({ frame: f.id })}
-                  className={cn(
-                    "px-2 py-1.5 text-xs font-mono transition-colors border text-left rounded",
-                    currentFrame === f.id
-                      ? "bg-[hsl(var(--rune)/0.15)] border-[hsl(var(--rune)/0.6)] text-[hsl(var(--rune))]"
-                      : "border-border text-muted-foreground hover:border-[hsl(var(--rune)/0.4)] hover:text-foreground"
-                  )}
-                >
-                  <span className="block font-semibold">{f.label}</span>
-                  <span className="text-[9px] opacity-60 normal-case">{f.desc}</span>
+            <Collapsible defaultOpen>
+              <CollapsibleTrigger asChild>
+                <button className="flex items-center justify-between w-full group mb-3">
+                  <Label className="font-mono text-xs uppercase tracking-widest text-[hsl(var(--rune))] cursor-pointer group-hover:text-[hsl(var(--rune))]/80 transition-colors">
+                    Ramka karty
+                  </Label>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-90" />
                 </button>
-              ))}
-            </div>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-4">
+                  {FRAMES.map((f) => (
+                    <button
+                      key={f.id}
+                      onClick={() => update({ frame: f.id })}
+                      className={cn(
+                        "px-2 py-1.5 text-xs font-mono transition-colors border text-left rounded",
+                        currentFrame === f.id
+                          ? "bg-[hsl(var(--rune)/0.15)] border-[hsl(var(--rune)/0.6)] text-[hsl(var(--rune))]"
+                          : "border-border text-muted-foreground hover:border-[hsl(var(--rune)/0.4)] hover:text-foreground"
+                      )}
+                    >
+                      <span className="block font-semibold">{f.label}</span>
+                      <span className="text-[9px] opacity-60 normal-case">{f.desc}</span>
+                    </button>
+                  ))}
+                </div>
 
-            {/* Live frame + avatar preview */}
-            <div className="space-y-1.5">
-              <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Podgląd ramki:</p>
-              <FramePreview
-                character={character}
-                frame={currentFrame}
-                avatarBorder={currentAvatarBorder}
-                fonts={fonts}
-              />
-            </div>
+                {/* Live frame + avatar preview */}
+                <div className="space-y-1.5">
+                  <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Podgląd ramki:</p>
+                  <FramePreview
+                    character={character}
+                    frame={currentFrame}
+                    avatarBorder={currentAvatarBorder}
+                    fonts={fonts}
+                  />
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
           </section>
 
           {/* ── Avatar border ── */}
           <section className="border-t border-border pt-5">
-            <Label className="font-mono text-xs uppercase tracking-widest text-[hsl(var(--rune))] mb-3 block">
-              Obramówka profilowego
-            </Label>
-            <div className="flex flex-wrap gap-2" data-palette={character.palette}>
-              {AVATAR_BORDERS.map((ab) => (
-                <button
-                  key={ab.id}
-                  onClick={() => update({ avatarBorder: ab.id })}
-                  className={cn("flex flex-col items-center gap-2 p-2 rounded border transition-colors lv-card-scope", {
-                    "border-[hsl(var(--rune)/0.6)] bg-[hsl(var(--rune)/0.08)]": currentAvatarBorder === ab.id,
-                    "border-border hover:border-[hsl(var(--rune)/0.3)]": currentAvatarBorder !== ab.id,
-                  })}
-                >
-                  <div className={cn(
-                    "h-10 w-10 overflow-hidden",
-                    ab.id === "pixel" ? "rounded-none" : "rounded-full",
-                    AVATAR_BORDER_CLASS[ab.id],
-                  )}>
-                    {character.avatar
-                      ? <img src={character.avatar} alt="" className="h-full w-full object-cover" />
-                      : <div className="h-full w-full grid place-items-center bg-muted"><User className="h-4 w-4 text-muted-foreground" /></div>
-                    }
-                  </div>
-                  <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">{ab.label}</span>
+            <Collapsible defaultOpen>
+              <CollapsibleTrigger asChild>
+                <button className="flex items-center justify-between w-full group mb-3">
+                  <Label className="font-mono text-xs uppercase tracking-widest text-[hsl(var(--rune))] cursor-pointer group-hover:text-[hsl(var(--rune))]/80 transition-colors">
+                    Obramówka profilowego
+                  </Label>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-90" />
                 </button>
-              ))}
-            </div>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="flex flex-wrap gap-2" data-palette={character.palette}>
+                  {AVATAR_BORDERS.map((ab) => (
+                    <button
+                      key={ab.id}
+                      onClick={() => update({ avatarBorder: ab.id })}
+                      className={cn("flex flex-col items-center gap-2 p-2 rounded border transition-colors lv-card-scope", {
+                        "border-[hsl(var(--rune)/0.6)] bg-[hsl(var(--rune)/0.08)]": currentAvatarBorder === ab.id,
+                        "border-border hover:border-[hsl(var(--rune)/0.3)]": currentAvatarBorder !== ab.id,
+                      })}
+                    >
+                      <div className={cn(
+                        "h-10 w-10 overflow-hidden",
+                        ab.id === "pixel" ? "rounded-none" : "rounded-full",
+                        AVATAR_BORDER_CLASS[ab.id],
+                      )}>
+                        {character.avatar
+                          ? <img src={character.avatar} alt="" className="h-full w-full object-cover" />
+                          : <div className="h-full w-full grid place-items-center bg-muted"><User className="h-4 w-4 text-muted-foreground" /></div>
+                        }
+                      </div>
+                      <span className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground">{ab.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
           </section>
 
           {/* ── Background opacity ── */}
