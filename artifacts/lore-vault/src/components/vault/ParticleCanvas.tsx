@@ -2,7 +2,6 @@ import { useEffect, useRef } from "react";
 
 interface Props {
   effect: string;
-  /** Extra blend layer on top of global — use higher opacity */
   characterLayer?: boolean;
 }
 
@@ -29,13 +28,23 @@ export const ParticleCanvas = ({ effect, characterLayer }: Props) => {
       x: number; y: number; vx: number; vy: number;
       r: number; a: number; life?: number; hue?: number;
       rot?: number; vrot?: number;
+      w?: number; len?: number; branch?: boolean;
+      color?: string; gravity?: number; spin?: number; shape?: number;
+      phase?: number; amplitude?: number; speed?: number;
     };
     let particles: P[] = [];
 
     const count: Record<string, number> = {
       stars: 180, rain: 220, fire: 120, embers: 90, void: 90,
       leaves: 60, fog: 18, bubbles: 55, snow: 150,
+      lightning: 6, confetti: 140, ocean: 45,
     };
+
+    const CONFETTI_COLORS = [
+      "hsl(355,85%,65%)", "hsl(40,90%,60%)", "hsl(200,80%,60%)",
+      "hsl(270,75%,65%)", "hsl(130,65%,55%)", "hsl(180,70%,55%)",
+      "hsl(320,75%,65%)", "hsl(60,90%,60%)",
+    ];
 
     const spawn = (): P => {
       const dpr = devicePixelRatio;
@@ -76,6 +85,46 @@ export const ParticleCanvas = ({ effect, characterLayer }: Props) => {
             vx: (Math.random() - 0.5) * 0.8, vy: 0.4 + Math.random() * 1.1,
             r: (1 + Math.random() * 2.5) * dpr, a: 0.5 + Math.random() * 0.5,
           };
+
+        case "lightning":
+          return {
+            x: Math.random() * w, y: 0,
+            vx: 0, vy: 0,
+            r: 1, a: 0,
+            life: 0,
+            w: (1.5 + Math.random() * 2.5) * dpr,
+            len: h * (0.25 + Math.random() * 0.5),
+          };
+
+        case "confetti":
+          return {
+            x: Math.random() * w, y: -20 * dpr - Math.random() * h * 0.3,
+            vx: (Math.random() - 0.5) * 2.5,
+            vy: 1.8 + Math.random() * 2.5,
+            r: (4 + Math.random() * 5) * dpr,
+            a: 0.8 + Math.random() * 0.2,
+            hue: Math.floor(Math.random() * CONFETTI_COLORS.length),
+            rot: Math.random() * Math.PI * 2,
+            vrot: (Math.random() - 0.5) * 0.1,
+            gravity: 0.012 + Math.random() * 0.018,
+            spin: (Math.random() - 0.5) * 0.08,
+            shape: Math.floor(Math.random() * 3),
+          };
+
+        case "ocean":
+          return {
+            x: Math.random() * w,
+            y: h * 0.4 + Math.random() * h * 0.6,
+            vx: (0.3 + Math.random() * 0.8) * (Math.random() < 0.5 ? 1 : -1),
+            vy: 0,
+            r: (6 + Math.random() * 18) * dpr,
+            a: 0.04 + Math.random() * 0.12,
+            phase: Math.random() * Math.PI * 2,
+            amplitude: (8 + Math.random() * 20) * dpr,
+            speed: 0.02 + Math.random() * 0.04,
+            hue: 195 + (Math.random() - 0.5) * 30,
+          };
+
         default:
           return { x: 0, y: 0, vx: 0, vy: 0, r: 1, a: 1 };
       }
@@ -164,6 +213,129 @@ export const ParticleCanvas = ({ effect, characterLayer }: Props) => {
           ctx.fillStyle = `hsla(200, 60%, 95%, ${alpha})`;
           ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
           if (p.y > h + 10) Object.assign(p, spawn());
+
+        } else if (effect === "lightning") {
+          // Each bolt has a life cycle: dormant → strike → fade
+          p.life! += 0.04;
+          const cycle = p.life! % (5 + Math.random() * 3);
+
+          if (cycle < 0.08) {
+            // STRIKE: draw jagged bolt
+            const bx = p.x;
+            const endY = p.y + p.len! * dpr;
+            const segments = 8 + Math.floor(Math.random() * 6);
+            const points: [number, number][] = [[bx, p.y]];
+            for (let i = 1; i < segments; i++) {
+              const py = p.y + (endY - p.y) * (i / segments);
+              const px = bx + (Math.random() - 0.5) * 60 * dpr;
+              points.push([px, py]);
+            }
+            points.push([bx + (Math.random() - 0.5) * 20 * dpr, endY]);
+
+            // Outer glow
+            ctx.save();
+            ctx.shadowColor = "hsla(220, 100%, 80%, 0.9)";
+            ctx.shadowBlur = 18 * dpr;
+            ctx.strokeStyle = `hsla(210, 100%, 90%, 0.85)`;
+            ctx.lineWidth = p.w! * 2.5;
+            ctx.lineJoin = "round";
+            ctx.beginPath();
+            ctx.moveTo(points[0][0], points[0][1]);
+            for (let i = 1; i < points.length; i++) ctx.lineTo(points[i][0], points[i][1]);
+            ctx.stroke();
+
+            // Core
+            ctx.strokeStyle = "hsla(200, 100%, 97%, 1)";
+            ctx.lineWidth = p.w!;
+            ctx.beginPath();
+            ctx.moveTo(points[0][0], points[0][1]);
+            for (let i = 1; i < points.length; i++) ctx.lineTo(points[i][0], points[i][1]);
+            ctx.stroke();
+            ctx.restore();
+
+            // Small branch
+            if (Math.random() < 0.5 && points.length > 3) {
+              const bi = Math.floor(points.length * 0.4);
+              ctx.save();
+              ctx.strokeStyle = "hsla(220, 90%, 85%, 0.5)";
+              ctx.lineWidth = p.w! * 0.5;
+              ctx.beginPath();
+              ctx.moveTo(points[bi][0], points[bi][1]);
+              ctx.lineTo(
+                points[bi][0] + (Math.random() - 0.5) * 80 * dpr,
+                points[bi][1] + p.len! * dpr * 0.35,
+              );
+              ctx.stroke();
+              ctx.restore();
+            }
+          } else if (cycle < 0.25) {
+            // Afterglow fade
+            const fade = 1 - (cycle - 0.08) / 0.17;
+            ctx.fillStyle = `hsla(220, 80%, 85%, ${fade * 0.06})`;
+            ctx.fillRect(0, 0, w, h);
+          }
+
+          if (cycle > 5) {
+            // Reset bolt to new random position after full dormancy
+            Object.assign(p, {
+              x: w * 0.1 + Math.random() * w * 0.8,
+              life: Math.random() * 2,
+              len: h * (0.25 + Math.random() * 0.5),
+              w: (1.5 + Math.random() * 2.5) * dpr,
+            });
+          }
+
+        } else if (effect === "confetti") {
+          p.vy += p.gravity! * dpr;
+          p.vx += Math.sin(t * 0.8 + p.x * 0.002) * 0.015;
+          p.rot! += p.vrot! + Math.sin(t * 1.2 + p.y * 0.001) * p.spin!;
+
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate(p.rot!);
+          ctx.globalAlpha = p.a * Math.max(0, 1 - p.y / (h * 1.1));
+          const color = CONFETTI_COLORS[p.hue! % CONFETTI_COLORS.length];
+          ctx.fillStyle = color;
+
+          const s = p.r;
+          if (p.shape === 0) {
+            // Rectangle strip
+            ctx.fillRect(-s * 0.4, -s, s * 0.8, s * 2);
+          } else if (p.shape === 1) {
+            // Circle dot
+            ctx.beginPath(); ctx.arc(0, 0, s * 0.7, 0, Math.PI * 2); ctx.fill();
+          } else {
+            // Diamond
+            ctx.beginPath();
+            ctx.moveTo(0, -s); ctx.lineTo(s * 0.65, 0);
+            ctx.lineTo(0, s); ctx.lineTo(-s * 0.65, 0);
+            ctx.closePath(); ctx.fill();
+          }
+          ctx.restore();
+          ctx.globalAlpha = 1;
+
+          if (p.y > h + 20 * dpr) Object.assign(p, spawn());
+
+        } else if (effect === "ocean") {
+          // Wave circles / foam patches drifting
+          p.phase! += p.speed!;
+          const waveY = p.y + Math.sin(p.phase!) * p.amplitude!;
+          const pulse = 0.6 + 0.4 * Math.sin(p.phase! * 1.3);
+
+          ctx.fillStyle = `hsla(${p.hue}, 75%, 68%, ${p.a * pulse})`;
+          ctx.beginPath();
+          ctx.arc(p.x, waveY, p.r, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Foam rim highlight
+          ctx.strokeStyle = `hsla(200, 80%, 90%, ${p.a * pulse * 0.5})`;
+          ctx.lineWidth = 0.8 * dpr;
+          ctx.beginPath();
+          ctx.arc(p.x, waveY, p.r * 0.75, 0, Math.PI * 2);
+          ctx.stroke();
+
+          if (p.vx > 0 && p.x > w + p.r) Object.assign(p, { ...spawn(), x: -p.r });
+          else if (p.vx < 0 && p.x < -p.r) Object.assign(p, { ...spawn(), x: w + p.r });
         }
       }
       raf = requestAnimationFrame(draw);

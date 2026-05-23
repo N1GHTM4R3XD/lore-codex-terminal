@@ -1,11 +1,13 @@
 export type Palette = string; // built-in id or custom id starting with "custom_"
 
-export type Effect = "rain" | "fire" | "stars" | "void" | "embers" | "none";
+export type Effect = "rain" | "fire" | "stars" | "void" | "embers" | "none"
+  | "lightning" | "confetti" | "ocean";
 
 /** Per-character ambient effect shown as full-page particles on the character page. */
 export type CardAnimation =
   | "none" | "rain" | "fire" | "stars" | "embers" | "void"
-  | "leaves" | "fog" | "bubbles" | "snow";
+  | "leaves" | "fog" | "bubbles" | "snow"
+  | "lightning" | "confetti" | "ocean";
 
 export type FrameStyle =
   | "pixel" | "ornament" | "neon" | "parchment" | "none" | "arcane" | "gothic" | "circuit" | "minimal"

@@ -84,16 +84,19 @@ const AVATAR_BORDERS: { id: AvatarBorderStyle; label: string }[] = [
 ];
 
 const ANIMS: { id: CardAnimation; label: string; emoji: string }[] = [
-  { id: "none",    label: "Brak",    emoji: "—" },
-  { id: "rain",    label: "Deszcz",  emoji: "🌧" },
-  { id: "fire",    label: "Ogień",   emoji: "🔥" },
-  { id: "stars",   label: "Gwiazdy", emoji: "⭐" },
-  { id: "embers",  label: "Żar",     emoji: "🔸" },
-  { id: "void",    label: "Pustka",  emoji: "🌀" },
-  { id: "leaves",  label: "Liście",  emoji: "🍂" },
-  { id: "fog",     label: "Mgła",    emoji: "🌫️" },
-  { id: "bubbles", label: "Bąbelki", emoji: "🫧" },
-  { id: "snow",    label: "Śnieg",   emoji: "❄️" },
+  { id: "none",      label: "Brak",        emoji: "—"  },
+  { id: "rain",      label: "Deszcz",      emoji: "🌧"  },
+  { id: "fire",      label: "Ogień",       emoji: "🔥"  },
+  { id: "stars",     label: "Gwiazdy",     emoji: "⭐"  },
+  { id: "embers",    label: "Żar",         emoji: "🔸"  },
+  { id: "void",      label: "Pustka",      emoji: "🌀"  },
+  { id: "leaves",    label: "Liście",      emoji: "🍂"  },
+  { id: "fog",       label: "Mgła",        emoji: "🌫️"  },
+  { id: "bubbles",   label: "Bąbelki",     emoji: "🫧"  },
+  { id: "snow",      label: "Śnieg",       emoji: "❄️"  },
+  { id: "lightning", label: "Błyskawice",  emoji: "⚡"  },
+  { id: "confetti",  label: "Konfetti",    emoji: "🎊"  },
+  { id: "ocean",     label: "Morskie fale",emoji: "🌊"  },
 ];
 
 const FONT_CATEGORIES: { id: string; label: string }[] = [

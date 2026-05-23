@@ -136,7 +136,7 @@ const CharacterPage = () => {
             <VaultTabs value={tab} onChange={setTab} />
           </div>
 
-          <div key={tab} className="animate-fade-in">
+          <div key={tab} className="animate-tab-in">
             {tab === "lore" && <LoreTab state={character} update={update} onEntity={onEntity} />}
             {tab === "journal" && <JournalTab state={character} update={update} />}
             {tab === "manuscript" && <ManuscriptTab state={character} update={update} />}
