@@ -575,8 +575,8 @@ const Index = () => {
                       </span>
                     </div>
                     <Button asChild variant="outline" size="sm" className="font-mono uppercase text-xs">
-                      <Link to="/tablica-swiata?tab=swiaty">
-                        <Plus className="h-3.5 w-3.5 mr-1.5" /> Kreator Światów
+                      <Link to="/tablica-swiata?tab=powiazania">
+                        <Link2 className="h-3.5 w-3.5 mr-1.5" /> Więzi
                       </Link>
                     </Button>
                   </div>

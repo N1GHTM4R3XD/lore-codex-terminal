@@ -69,9 +69,18 @@ export const WorldCard = ({ world, characters, onDelete }: Props) => {
 
         {/* Info */}
         <div className="p-4">
-          <h3 className="font-display text-[1.15rem] leading-snug mb-1 group-hover:text-[hsl(var(--rune))] transition-colors">
-            {world.name}
-          </h3>
+          <div className="flex items-center gap-2 mb-1">
+            {world.imageUrl && (
+              <img
+                src={world.imageUrl}
+                alt=""
+                className="h-6 w-6 rounded-full object-cover border border-border shrink-0"
+              />
+            )}
+            <h3 className="font-display text-[1.15rem] leading-snug group-hover:text-[hsl(var(--rune))] transition-colors">
+              {world.name}
+            </h3>
+          </div>
           {world.description && (
             <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
               {world.description}

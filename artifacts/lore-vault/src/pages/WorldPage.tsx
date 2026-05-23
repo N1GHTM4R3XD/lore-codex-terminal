@@ -20,12 +20,12 @@ type WorldTab = "kronika" | "encyklopedia" | "historia" | "moodboard" | "tablica
 
 const TABS: { id: WorldTab; label: string; icon: React.ElementType }[] = [
   { id: "kronika",      label: "Kronika",      icon: BookOpen },
-  { id: "wiezi",        label: "Więzi",        icon: Heart },
-  { id: "encyklopedia", label: "Encyklopedia", icon: Layers },
   { id: "historia",     label: "Historia",     icon: Scroll },
+  { id: "postacie",     label: "Postacie",     icon: Users },
+  { id: "wiezi",        label: "Więzi",        icon: Heart },
   { id: "moodboard",    label: "Moodboard",    icon: ImageIcon },
   { id: "tablica",      label: "Tablica",      icon: LayoutDashboard },
-  { id: "postacie",     label: "Postacie",     icon: Users },
+  { id: "encyklopedia", label: "Encyklopedia", icon: Layers },
 ];
 
 /* ── Więzi (Bonds) tab ───────────────────────────────────────── */

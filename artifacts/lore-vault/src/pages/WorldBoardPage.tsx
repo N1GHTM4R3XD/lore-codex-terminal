@@ -1,14 +1,13 @@
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
-  ArrowLeft, LayoutDashboard, Globe, Plus, Pencil, Trash2,
-  Check, X, Link2, User,
+  ArrowLeft, LayoutDashboard, Link2, Plus, Pencil, Trash2,
+  Check, X, User,
 } from "lucide-react";
 import { useVaultDB } from "@/hooks/useVaultDB";
 import { ParticleCanvas } from "@/components/vault/ParticleCanvas";
 import { WhiteboardCanvas } from "@/components/vault/WhiteboardCanvas";
 import { SettingsModal } from "@/components/vault/SettingsModal";
-import { WorldCreatorTab } from "@/components/vault/WorldCreatorTab";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Whiteboard, Connection, ConnectionNodeType, Character, World } from "@/lib/vault-types";
 import { cn } from "@/lib/utils";
 
-type MainTab = "tablica" | "swiaty" | "powiazania";
+type MainTab = "tablica" | "powiazania";
 
 /* ── connection graph ────────────────────────────────────────── */
 const CONNECTION_COLORS = ["#cf9d7b", "#8fc4d8", "#cfa8e0", "#a8d8a0", "#e89a9a", "#f7d774"];
@@ -265,15 +264,13 @@ function AddConnectionForm({ characters, worlds, onAdd }: {
 const WorldBoardPage = () => {
   const {
     db, setWorldBoard, setDb,
-    addWorld, updateWorld, deleteWorld, addConnection, deleteConnection,
+    addConnection, deleteConnection,
     addNamedBoard, updateNamedBoard, setNamedBoardContent, deleteNamedBoard,
   } = useVaultDB();
 
   const [searchParams] = useSearchParams();
   const [mainTab, setMainTab] = useState<MainTab>(
-    searchParams.get("tab") === "swiaty" ? "swiaty"
-    : searchParams.get("tab") === "powiazania" ? "powiazania"
-    : "tablica",
+    searchParams.get("tab") === "powiazania" ? "powiazania" : "tablica",
   );
   const [selectedBoardId, setSelectedBoardId] = useState<string | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
@@ -315,7 +312,6 @@ const WorldBoardPage = () => {
 
   const TABS: { id: MainTab; label: string; icon: React.ElementType; count?: number }[] = [
     { id: "tablica",    label: "Tablice",        icon: LayoutDashboard },
-    { id: "swiaty",     label: "Kreator Światów", icon: Globe, count: db.worlds?.length },
     { id: "powiazania", label: "Powiązania",      icon: Link2, count: connections.length },
   ];
 
@@ -442,22 +438,6 @@ const WorldBoardPage = () => {
                   onChange={handleBoardChange} title={currentBoardTitle} />
               </div>
             </div>
-          </div>
-        )}
-
-        {/* ── Światy tab ── */}
-        {mainTab === "swiaty" && (
-          <div>
-            <p className="text-muted-foreground italic mb-6 max-w-2xl text-sm">
-              Buduj fikcyjne światy, przypisuj do nich postacie i otwieraj ich pełne karty, aby pisać kroniki i encyklopedie.
-            </p>
-            <WorldCreatorTab
-              worlds={db.worlds ?? []}
-              characters={db.characters}
-              addWorld={addWorld}
-              updateWorld={updateWorld}
-              deleteWorld={deleteWorld}
-            />
           </div>
         )}
 

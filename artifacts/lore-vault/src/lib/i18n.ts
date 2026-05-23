@@ -2,8 +2,8 @@ export type Lang = "pl" | "en";
 
 const T = {
   // Tabs
-  "tab.lore":         { pl: "Lore",        en: "Lore" },
-  "tab.journal":      { pl: "Dziennik",    en: "Journal" },
+  "tab.lore":         { pl: "Kronika",     en: "Chronicle" },
+  "tab.journal":      { pl: "Historia",    en: "History" },
   "tab.manuscript":   { pl: "Manuskrypt",  en: "Manuscript" },
   "tab.moodboard":    { pl: "Moodboard",   en: "Moodboard" },
   "tab.whiteboard":   { pl: "Tablica",     en: "Board" },
