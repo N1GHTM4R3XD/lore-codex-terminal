@@ -6,7 +6,6 @@ import {
   Sparkles, X, Upload,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { BoardNote, BoardStroke, BrushType, BgPattern, Whiteboard, Sticker, StickerPack } from "@/lib/vault-types";
 import { cn } from "@/lib/utils";
 
@@ -177,6 +176,7 @@ export const WhiteboardCanvas = ({ board, onChange, title = "Tablica", hideHeade
   const [color, setColor] = useState("#e0b06a");
   const [size, setSize] = useState(4);
   const [eraserSize, setEraserSize] = useState(24);
+  const [cursorPos, setCursorPos] = useState<{ x: number; y: number } | null>(null);
 
   const [vp, setVp] = useState<Viewport>({ x: 0, y: 0, scale: 1 });
 
@@ -380,6 +380,9 @@ export const WhiteboardCanvas = ({ board, onChange, title = "Tablica", hideHeade
   const onPointerMove = (e: React.PointerEvent) => {
     activeTouches.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
+    const { sx, sy } = localXY(e);
+    setCursorPos({ x: sx, y: sy });
+
     /* Handle pinch zoom */
     if (pinchRef.current && activeTouches.current.size === 2) {
       const pts = [...activeTouches.current.values()];
@@ -397,7 +400,6 @@ export const WhiteboardCanvas = ({ board, onChange, title = "Tablica", hideHeade
       return;
     }
 
-    const { sx, sy } = localXY(e);
     const v = vpRef.current;
 
     if (dragStickerRef.current) {
@@ -453,6 +455,7 @@ export const WhiteboardCanvas = ({ board, onChange, title = "Tablica", hideHeade
   };
 
   const onPointerUp = (e: React.PointerEvent) => {
+    setCursorPos(null);
     activeTouches.current.delete(e.pointerId);
     if (activeTouches.current.size < 2) pinchRef.current = null;
 
@@ -663,9 +666,10 @@ export const WhiteboardCanvas = ({ board, onChange, title = "Tablica", hideHeade
           <div className="w-px h-4 bg-border mx-0.5" />
           <input type="color" value={color} onChange={e => setColor(e.target.value)}
             className="h-7 w-7 rounded-full border border-border bg-transparent cursor-pointer" title="Kolor" />
-          <Input type="number" min={1} max={60} value={size}
-            onChange={e => setSize(Math.max(1, +e.target.value || 1))}
-            className="w-12 font-mono text-xs h-7 px-2" title="Grubość" />
+          <input type="range" min={1} max={40} step={0.5} value={size}
+            onChange={e => setSize(Math.max(0.5, +e.target.value || 1))}
+            className="w-20 h-4 accent-[hsl(var(--rune))]" title="Grubość" />
+          <span className="font-mono text-[10px] w-6 text-right">{size.toFixed(1)}</span>
         </div>
       )}
 
@@ -673,9 +677,10 @@ export const WhiteboardCanvas = ({ board, onChange, title = "Tablica", hideHeade
       {tool === "erase" && (
         <div className="vault-panel rounded-full px-3 py-1 flex items-center gap-1.5">
           <span className="font-mono text-[10px] text-muted-foreground uppercase">Promień:</span>
-          <Input type="number" min={4} max={200} value={eraserSize}
+          <input type="range" min={4} max={120} step={2} value={eraserSize}
             onChange={e => setEraserSize(Math.max(4, +e.target.value || 4))}
-            className="w-14 font-mono text-xs h-7 px-2" title="Promień gumki (px ekranu)" />
+            className="w-20 h-4 accent-[hsl(var(--rune))]" title="Promień gumki (px ekranu)" />
+          <span className="font-mono text-[10px] w-8 text-right">{eraserSize}px</span>
         </div>
       )}
 
@@ -876,6 +881,23 @@ export const WhiteboardCanvas = ({ board, onChange, title = "Tablica", hideHeade
         onPointerCancel={onPointerLeave}
       >
         <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none" />
+
+        {/* Brush / eraser cursor preview */}
+        {cursorPos && (tool === "draw" || tool === "erase") && (
+          <div
+            className="absolute rounded-full pointer-events-none"
+            style={{
+              left: cursorPos.x - (tool === "draw" ? size : eraserSize) * vp.scale / 2,
+              top: cursorPos.y - (tool === "draw" ? size : eraserSize) * vp.scale / 2,
+              width: (tool === "draw" ? size : eraserSize) * vp.scale,
+              height: (tool === "draw" ? size : eraserSize) * vp.scale,
+              border: `1.5px solid ${tool === "draw" ? color : "rgba(255,255,255,0.7)"}`,
+              background: tool === "erase" ? "rgba(255,255,255,0.12)" : "transparent",
+              zIndex: 50,
+              transform: "translate(-50%,-50%)",
+            }}
+          />
+        )}
 
         {/* ── Stickers ─────────────────────────────────────── */}
         {(board.stickers ?? []).map(s => {
