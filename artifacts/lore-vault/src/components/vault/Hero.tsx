@@ -3,6 +3,7 @@ import { Pencil, Check, Image as ImageIcon, User, Upload, Link } from "lucide-re
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { VaultState } from "@/lib/vault-types";
+import { cn } from "@/lib/utils";
 
 interface Props {
   state: VaultState;
@@ -160,10 +161,20 @@ export const Hero = ({ state, update }: Props) => {
         </div>
 
         <div className="mt-10 grid gap-10 md:grid-cols-[auto,1fr] md:items-end">
-          {/* Avatar */}
+          {/* Avatar with background + border */}
           <div className="relative group animate-scale-in">
-            <div className="absolute -inset-2 bg-gradient-rune opacity-40 blur-xl rounded-full animate-rune-pulse" />
-            <div className="relative h-40 w-40 md:h-48 md:w-48 rounded-full overflow-hidden border-2 border-[hsl(var(--rune))] shadow-rune corner-frame">
+            {/* Subtle background glow behind avatar */}
+            <div className="absolute -inset-3 bg-gradient-rune opacity-30 blur-2xl rounded-full animate-rune-pulse" />
+            {/* Decorative ring */}
+            <div className="absolute -inset-1.5 rounded-full border border-[hsl(var(--rune)/0.2)]" />
+            <div
+              className={cn(
+                "relative h-40 w-40 md:h-48 md:w-48 overflow-hidden shadow-rune",
+                (state.avatarBorder ?? "rune") === "pixel" ? "rounded-none" : "rounded-full",
+                state.avatarBorder === "crown" ? "rounded-t-full" : "",
+                "avatar-border-" + (state.avatarBorder ?? "rune")
+              )}
+            >
               {state.avatar ? (
                 <img src={state.avatar} alt={state.name} className="h-full w-full object-cover" />
               ) : (

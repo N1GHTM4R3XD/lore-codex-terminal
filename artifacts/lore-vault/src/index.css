@@ -313,6 +313,94 @@
     border-radius: var(--radius);
     box-shadow: 0 6px 32px hsl(var(--vault-deep)/0.5);
   }
+  .frame-chain {
+    border: 2px dashed hsl(var(--rune)/0.6);
+    border-radius: 2px;
+    box-shadow: inset 0 0 0 3px hsl(var(--background)), 0 0 0 2px hsl(var(--rune)/0.3);
+  }
+  .frame-flame {
+    border: 2px solid hsl(var(--primary));
+    border-radius: 0 18px 0 18px;
+    box-shadow:
+      0 0 0 2px hsl(var(--background)),
+      0 0 16px hsl(var(--primary)/0.5),
+      0 0 32px hsl(var(--accent)/0.25),
+      inset 0 0 20px hsl(var(--primary)/0.08);
+  }
+  .frame-ice {
+    border: 2px solid hsl(195,80%,70%);
+    border-radius: 8px;
+    box-shadow:
+      0 0 0 1px hsl(195,60%,50% / 0.3),
+      0 0 18px hsl(195,80%,70% / 0.35),
+      inset 0 0 24px hsl(200,60%,80% / 0.06);
+  }
+  .frame-vines {
+    border: 2px solid hsl(var(--rune)/0.5);
+    border-radius: 0;
+    position: relative;
+    box-shadow: inset 0 0 0 4px hsl(var(--vault-deep)/0.3);
+  }
+  .frame-vines::before, .frame-vines::after {
+    content: ''; position: absolute; width: 20px; height: 20px;
+    border: 2px solid hsl(var(--rune)/0.8); pointer-events: none;
+  }
+  .frame-vines::before { top: -4px; left: -4px; border-right: 0; border-bottom: 0; }
+  .frame-vines::after  { bottom: -4px; right: -4px; border-left: 0; border-top: 0; }
+  .frame-crown {
+    border: 2px solid hsl(var(--rune));
+    border-radius: 0 0 12px 12px;
+    box-shadow:
+      0 -6px 0 -2px hsl(var(--rune)/0.5),
+      0 0 14px hsl(var(--rune)/0.3);
+  }
+  .frame-diamond {
+    border: 1px solid hsl(var(--rune)/0.4);
+    border-radius: 0;
+    transform: rotate(0deg);
+    position: relative;
+    clip-path: polygon(8% 0%, 92% 0%, 100% 8%, 100% 92%, 92% 100%, 8% 100%, 0% 92%, 0% 8%);
+    box-shadow: 0 0 20px hsl(var(--rune)/0.2);
+  }
+  .frame-shadow {
+    border: 1px solid hsl(var(--vault-edge));
+    border-radius: 0;
+    box-shadow:
+      6px 6px 0 0 hsl(var(--vault-deep)),
+      12px 12px 0 0 hsl(var(--vault-deep)/0.5),
+      0 0 40px hsl(var(--vault-deep)/0.4);
+  }
+  .frame-tapestry {
+    border: 1px solid hsl(var(--rune)/0.5);
+    border-radius: 0;
+    position: relative;
+    background: linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--background)) 100%);
+  }
+  .frame-tapestry::before, .frame-tapestry::after {
+    content: ''; position: absolute; left: 8px; right: 8px; height: 3px;
+    background: linear-gradient(90deg, transparent, hsl(var(--rune)/0.5), transparent);
+    pointer-events: none;
+  }
+  .frame-tapestry::before { top: 6px; }
+  .frame-tapestry::after  { bottom: 6px; }
+
+  /* Avatar border styles for Hero */
+  .avatar-border-rune     { border: 2px solid hsl(var(--rune)); box-shadow: 0 0 24px hsl(var(--rune)/0.5); }
+  .avatar-border-double   { border: 2px solid hsl(var(--rune)); ring: 2px solid hsl(var(--rune)/0.35); }
+  .avatar-border-glow     { border: 2px solid hsl(var(--rune)); box-shadow: 0 0 20px hsl(var(--rune)/0.7), 0 0 40px hsl(var(--rune)/0.3); }
+  .avatar-border-pixel    { border: 3px solid hsl(var(--rune)); border-radius: 0; box-shadow: 3px 3px 0 hsl(var(--vault-deep)); }
+  .avatar-border-none     { border: none; }
+  .avatar-border-thin     { border: 1px solid hsl(var(--rune)/0.4); }
+  .avatar-border-ornate   { border: 2px solid hsl(var(--rune)); box-shadow: 0 0 0 5px hsl(var(--rune)/0.18), 0 0 0 8px hsl(var(--rune)/0.08); }
+  .avatar-border-chain    { border: 2px solid hsl(var(--rune)); box-shadow: inset 0 0 0 4px hsl(var(--rune)/0.12), 0 0 12px hsl(var(--rune)/0.5); }
+  .avatar-border-flame    { border: 2px solid hsl(var(--primary)); box-shadow: 0 0 16px hsl(var(--primary)/0.6), 0 0 32px hsl(var(--accent)/0.3); }
+  .avatar-border-ice      { border: 2px solid hsl(195,85%,70%); box-shadow: 0 0 14px hsla(195,80%,70%,0.5), 0 0 28px hsla(200,80%,80%,0.25); }
+  .avatar-border-crown    { border: 2px solid hsl(var(--rune)); box-shadow: 0 0 0 3px hsl(var(--rune)/0.2), 0 -4px 12px hsl(var(--rune)/0.4); border-radius: 9999px 9999px 0.5rem 0.5rem; }
+  .avatar-border-starburst{ border: 2px solid hsl(var(--rune)); box-shadow: 0 0 12px hsl(var(--rune)/0.6), 0 0 24px hsl(var(--primary)/0.3); }
+  .avatar-border-feather  { border: 1px solid hsl(var(--rune)/0.6); box-shadow: 0 4px 14px hsl(var(--rune)/0.25); }
+  .avatar-border-diamond  { border: 3px solid hsl(var(--rune)); box-shadow: 0 0 10px hsl(var(--rune)/0.5); }
+  .avatar-border-thorn    { border: 2px solid hsl(var(--accent)); box-shadow: 0 0 10px hsl(var(--accent)/0.5), 0 0 20px hsl(var(--accent)/0.2); }
+  .avatar-border-aura     { border: 0; box-shadow: 0 0 0 4px hsl(var(--rune)/0.35), 0 0 0 8px hsl(var(--rune)/0.15), 0 0 24px hsl(var(--rune)/0.4); }
 
   .corner-frame { position: relative; }
   .corner-frame::before, .corner-frame::after {

@@ -7,8 +7,13 @@ export type CardAnimation =
   | "none" | "rain" | "fire" | "stars" | "embers" | "void"
   | "leaves" | "fog" | "bubbles" | "snow";
 
-export type FrameStyle = "pixel" | "ornament" | "neon" | "parchment" | "none" | "arcane" | "gothic" | "circuit" | "minimal";
-export type AvatarBorderStyle = "rune" | "double" | "glow" | "pixel" | "none" | "thin" | "ornate";
+export type FrameStyle =
+  | "pixel" | "ornament" | "neon" | "parchment" | "none" | "arcane" | "gothic" | "circuit" | "minimal"
+  | "chain" | "flame" | "ice" | "vines" | "crown" | "diamond" | "shadow" | "tapestry";
+
+export type AvatarBorderStyle =
+  | "rune" | "double" | "glow" | "pixel" | "none" | "thin" | "ornate"
+  | "chain" | "flame" | "ice" | "crown" | "starburst" | "feather" | "diamond" | "thorn" | "aura";
 
 /** Font is now a free-form Google Font family name. */
 export type FontTheme = string;

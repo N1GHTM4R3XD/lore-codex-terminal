@@ -34,6 +34,18 @@ outputType = "webview"
 localPort = 5000
 externalPort = 80
 
+[[ports]]
+localPort = 8080
+externalPort = 8080
+
+[[ports]]
+localPort = 8081
+externalPort = 8081
+
+[[ports]]
+localPort = 25946
+externalPort = 3001
+
 [deployment]
 deploymentTarget = "static"
 build = ["bash", "-c", "PORT=5000 BASE_PATH=/ pnpm --filter @workspace/lore-vault run build"]

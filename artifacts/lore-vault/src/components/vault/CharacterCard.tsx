@@ -22,16 +22,33 @@ const FRAME_CLASS: Record<Character["frame"], string> = {
   gothic:   "frame-gothic",
   circuit:  "frame-circuit",
   minimal:  "frame-minimal",
+  chain:    "frame-chain",
+  flame:    "frame-flame",
+  ice:      "frame-ice",
+  vines:    "frame-vines",
+  crown:    "frame-crown",
+  diamond:  "frame-diamond",
+  shadow:   "frame-shadow",
+  tapestry: "frame-tapestry",
 };
 
 export const AVATAR_BORDER_CLASS: Record<AvatarBorderStyle, string> = {
-  rune:   "border-2 border-[hsl(var(--rune))] shadow-[0_0_8px_hsl(var(--rune)/0.5)]",
-  double: "border-2 border-[hsl(var(--rune))] ring-2 ring-[hsl(var(--rune)/0.35)] ring-offset-2 ring-offset-card",
-  glow:   "border-2 border-[hsl(var(--rune))] shadow-[0_0_20px_hsl(var(--rune)/0.7),0_0_40px_hsl(var(--rune)/0.3)]",
-  pixel:  "border-[3px] border-[hsl(var(--rune))] rounded-none shadow-[3px_3px_0_hsl(var(--vault-deep))]",
-  none:   "",
-  thin:   "border border-[hsl(var(--rune)/0.4)]",
-  ornate: "border-2 border-[hsl(var(--rune))] shadow-[0_0_0_5px_hsl(var(--rune)/0.18),0_0_0_8px_hsl(var(--rune)/0.08)]",
+  rune:     "border-2 border-[hsl(var(--rune))] shadow-[0_0_8px_hsl(var(--rune)/0.5)]",
+  double:   "border-2 border-[hsl(var(--rune))] ring-2 ring-[hsl(var(--rune)/0.35)] ring-offset-2 ring-offset-card",
+  glow:     "border-2 border-[hsl(var(--rune))] shadow-[0_0_20px_hsl(var(--rune)/0.7),0_0_40px_hsl(var(--rune)/0.3)]",
+  pixel:    "border-[3px] border-[hsl(var(--rune))] rounded-none shadow-[3px_3px_0_hsl(var(--vault-deep))]",
+  none:     "",
+  thin:     "border border-[hsl(var(--rune)/0.4)]",
+  ornate:   "border-2 border-[hsl(var(--rune))] shadow-[0_0_0_5px_hsl(var(--rune)/0.18),0_0_0_8px_hsl(var(--rune)/0.08)]",
+  chain:    "border-2 border-[hsl(var(--rune))] shadow-[inset_0_0_0_4px_hsl(var(--rune)/0.12),0_0_12px_hsl(var(--rune)/0.5)]",
+  flame:    "border-2 border-[hsl(var(--primary))] shadow-[0_0_16px_hsl(var(--primary)/0.6),0_0_32px_hsl(var(--accent)/0.3)]",
+  ice:      "border-2 border-[hsl(195,85%,70%)] shadow-[0_0_14px_hsla(195,80%,70%,0.5),0_0_28px_hsla(200,80%,80%,0.25)]",
+  crown:    "border-2 border-[hsl(var(--rune))] shadow-[0_0_0_3px_hsl(var(--rune)/0.2),0_-4px_12px_hsl(var(--rune)/0.4)]",
+  starburst:"border-2 border-[hsl(var(--rune))] shadow-[0_0_12px_hsl(var(--rune)/0.6),0_0_24px_hsl(var(--primary)/0.3)]",
+  feather:  "border border-[hsl(var(--rune)/0.6)] shadow-[0_4px_14px_hsl(var(--rune)/0.25)]",
+  diamond:  "border-[3px] border-[hsl(var(--rune))] shadow-[0_0_10px_hsl(var(--rune)/0.5)]",
+  thorn:    "border-2 border-[hsl(var(--accent))] shadow-[0_0_10px_hsl(var(--accent)/0.5),0_0_20px_hsl(var(--accent)/0.2)]",
+  aura:     "border-0 shadow-[0_0_0_4px_hsl(var(--rune)/0.35),0_0_0_8px_hsl(var(--rune)/0.15),0_0_24px_hsl(var(--rune)/0.4)]",
 };
 
 export const CharacterCard = ({ character, worlds, onDelete }: Props) => {
@@ -58,52 +75,51 @@ export const CharacterCard = ({ character, worlds, onDelete }: Props) => {
       <div data-card-anim={animation} className="will-change-transform">
         <Link to={`/character/${id}`} className="block focus:outline-none" aria-label={`Otwórz kartę ${name}`}>
 
-          {/* ── Image / background section ── */}
+          {/* ── Full card as avatar image ── */}
           <div className="aspect-[4/5] relative overflow-hidden">
 
-            {/* Layer 1: base card colour */}
-            <div className="absolute inset-0 bg-muted" />
+            {/* Layer 1: avatar fills entire card */}
+            <div className="absolute inset-0 bg-muted">
+              {avatar ? (
+                <img
+                  src={avatar}
+                  alt={`Awatar ${name}`}
+                  loading="lazy"
+                  className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+                />
+              ) : (
+                <div className="h-full w-full grid place-items-center bg-card/60 text-muted-foreground">
+                  <User className="h-16 w-16" />
+                </div>
+              )}
+            </div>
 
-            {/* Layer 2: background image with opacity */}
-            {character.background && (
+            {/* Layer 2: avatar border overlay (subtle edge highlight) */}
+            {avatar && (
               <div
-                className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105"
-                style={{
-                  backgroundImage: `url("${character.background}")`,
-                  opacity: bgOpacity,
-                }}
+                className={cn(
+                  "absolute inset-0 pointer-events-none z-10",
+                  avatarBorder === "pixel" ? "" : "rounded-none",
+                  AVATAR_BORDER_CLASS[avatarBorder] ? "border" : ""
+                )}
+                style={{ borderColor: 'transparent' }}
               />
             )}
 
-            {/* Layer 3: vignette */}
-            <div className="absolute inset-0 bg-gradient-to-t from-card/90 via-card/20 to-transparent" />
+            {/* Layer 3: bottom gradient for text readability */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
 
-            {/* Layer 4: avatar centred */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center pb-10">
-              <div className={cn(
-                "relative overflow-hidden flex-shrink-0 transition-transform duration-700 group-hover:scale-[1.04]",
-                avatarBorder === "pixel" ? "rounded-none" : "rounded-full",
-                "h-28 w-28",
-                AVATAR_BORDER_CLASS[avatarBorder],
-              )}>
-                {avatar
-                  ? <img src={avatar} alt={`Awatar ${name}`} loading="lazy" className="h-full w-full object-cover" />
-                  : <div className="h-full w-full grid place-items-center bg-card/60 text-muted-foreground"><User className="h-10 w-10" /></div>
-                }
-              </div>
-            </div>
-
-            {/* Layer 5: name + tagline at bottom */}
-            <div className="absolute bottom-0 inset-x-0 px-4 pb-3 pt-12 bg-gradient-to-t from-card/95 to-transparent">
+            {/* Layer 4: name + tagline at bottom */}
+            <div className="absolute bottom-0 inset-x-0 px-4 pb-3 pt-16">
               <h2
-                className="text-xl text-[hsl(var(--rune))] leading-tight line-clamp-2"
-                style={{ fontFamily: "var(--font-display)" }}
+                className="text-xl leading-tight line-clamp-2 drop-shadow-lg"
+                style={{ fontFamily: "var(--font-display)", color: "hsl(var(--rune))", textShadow: "0 2px 12px rgba(0,0,0,0.7)" }}
               >
                 {name}
               </h2>
               <p
-                className="text-sm italic text-muted-foreground mt-0.5 line-clamp-1"
-                style={{ fontFamily: "var(--font-body)" }}
+                className="text-sm italic mt-0.5 line-clamp-1 drop-shadow-lg"
+                style={{ fontFamily: "var(--font-body)", color: "hsl(var(--muted-foreground))", textShadow: "0 1px 8px rgba(0,0,0,0.6)" }}
               >
                 {tagline}
               </p>
@@ -111,13 +127,13 @@ export const CharacterCard = ({ character, worlds, onDelete }: Props) => {
 
             {/* World badge */}
             {world && (
-              <span className="absolute top-2 left-2 font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 bg-background/80 text-[hsl(195,85%,60%)] border border-[hsl(195,85%,60%)/0.5] flex items-center gap-1">
+              <span className="absolute top-2 left-2 z-10 font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 bg-black/70 text-[hsl(195,85%,60%)] border border-[hsl(195,85%,60%)/0.5] flex items-center gap-1 backdrop-blur-sm">
                 <Globe className="h-2.5 w-2.5" />{world.name}
               </span>
             )}
 
-            {/* Palette badge */}
-            <span className="absolute top-2 right-2 font-pixel text-[8px] uppercase px-1.5 py-1 bg-background/80 text-[hsl(var(--rune))] border border-[hsl(var(--rune)/0.5)]">
+            {/* Frame badge */}
+            <span className="absolute top-2 right-2 z-10 font-pixel text-[8px] uppercase px-1.5 py-1 bg-black/70 text-[hsl(var(--rune))] border border-[hsl(var(--rune)/0.5)] backdrop-blur-sm">
               {palette}
             </span>
           </div>

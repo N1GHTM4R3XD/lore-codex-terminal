@@ -35,15 +35,23 @@ const BUILTIN_PALETTES: { id: string; label: string; swatch: string }[] = [
 ];
 
 const FRAMES: { id: FrameStyle; label: string; desc: string }[] = [
-  { id: "pixel",    label: "Pixel",    desc: "podwójna pikselowa" },
-  { id: "ornament", label: "Ornament", desc: "narożne klamry" },
-  { id: "neon",     label: "Neon",     desc: "świecąca poświata" },
-  { id: "parchment",label: "Pergamin", desc: "gradient tła" },
-  { id: "arcane",   label: "Arkana",   desc: "magiczny kontur" },
-  { id: "gothic",   label: "Gotyk",    desc: "ciężka krawędź" },
-  { id: "circuit",  label: "Circuit",  desc: "techno narożniki" },
-  { id: "minimal",  label: "Minimal",  desc: "dyskretna linia" },
-  { id: "none",     label: "Brak",     desc: "cienka ramka" },
+  { id: "pixel",     label: "Pixel",     desc: "podwójna pikselowa" },
+  { id: "ornament",  label: "Ornament",  desc: "narożne klamry" },
+  { id: "neon",      label: "Neon",      desc: "świecąca poświata" },
+  { id: "parchment", label: "Pergamin",  desc: "gradient tła" },
+  { id: "arcane",    label: "Arkana",    desc: "magiczny kontur" },
+  { id: "gothic",    label: "Gotyk",     desc: "ciężka krawędź" },
+  { id: "circuit",   label: "Circuit",   desc: "techno narożniki" },
+  { id: "minimal",   label: "Minimal",   desc: "dyskretna linia" },
+  { id: "chain",     label: "Chain",     desc: "przerywany łańcuch" },
+  { id: "flame",     label: "Płomień",   desc: "ogniste narożniki" },
+  { id: "ice",       label: "Lód",       desc: "lodowa poświata" },
+  { id: "vines",     label: "Pnącza",    desc: "narożne liście" },
+  { id: "crown",     label: "Korona",    desc: "górna obwiednia" },
+  { id: "diamond",   label: "Diament",   desc: "uściosowany" },
+  { id: "shadow",    label: "Cień",      desc: "wielokrotny cień" },
+  { id: "tapestry",  label: "Arras",     desc: "poziome linie" },
+  { id: "none",      label: "Brak",      desc: "cienka ramka" },
 ];
 
 const FRAME_CLASS: Record<FrameStyle, string> = {
@@ -51,16 +59,28 @@ const FRAME_CLASS: Record<FrameStyle, string> = {
   parchment: "frame-parchment", none: "frame-none",
   arcane: "frame-arcane", gothic: "frame-gothic",
   circuit: "frame-circuit", minimal: "frame-minimal",
+  chain: "frame-chain", flame: "frame-flame", ice: "frame-ice",
+  vines: "frame-vines", crown: "frame-crown", diamond: "frame-diamond",
+  shadow: "frame-shadow", tapestry: "frame-tapestry",
 };
 
 const AVATAR_BORDERS: { id: AvatarBorderStyle; label: string }[] = [
-  { id: "rune",   label: "Runa" },
-  { id: "double", label: "Podwójna" },
-  { id: "glow",   label: "Blask" },
-  { id: "pixel",  label: "Piksel" },
-  { id: "ornate", label: "Ornament" },
-  { id: "thin",   label: "Cienka" },
-  { id: "none",   label: "Brak" },
+  { id: "rune",      label: "Runa" },
+  { id: "double",    label: "Podwójna" },
+  { id: "glow",      label: "Blask" },
+  { id: "pixel",     label: "Piksel" },
+  { id: "ornate",    label: "Ornament" },
+  { id: "thin",      label: "Cienka" },
+  { id: "chain",     label: "Łańcuszek" },
+  { id: "flame",     label: "Płomień" },
+  { id: "ice",       label: "Lód" },
+  { id: "crown",     label: "Korona" },
+  { id: "starburst", label: "Gwiazda" },
+  { id: "feather",   label: "Pierzko" },
+  { id: "diamond",   label: "Diament" },
+  { id: "thorn",     label: "Cierń" },
+  { id: "aura",      label: "Aura" },
+  { id: "none",      label: "Brak" },
 ];
 
 const ANIMS: { id: CardAnimation; label: string; emoji: string }[] = [
