@@ -59,7 +59,6 @@ export const CharacterCard = ({ character, worlds, onDelete, onDragStart, onDrop
   const world = worlds?.find((w) => w.characterIds?.includes(id));
   const f = character.fonts ?? { display: character.font, body: "Cormorant Garamond", mono: "JetBrains Mono" };
   const avatarBorder = character.avatarBorder ?? "rune";
-  const bgOpacity = (character.bgOpacity ?? 65) / 100;
   const isDragOver = dragOverId === id;
 
   useEffect(() => { loadFonts([f.display, f.body, f.mono]); }, [f.display, f.body, f.mono]);
@@ -91,9 +90,8 @@ export const CharacterCard = ({ character, worlds, onDelete, onDragStart, onDrop
 
   return (
     <article
-      data-palette={palette}
       className={cn(
-        "relative bg-card text-card-foreground group lv-card-scope transition-all duration-200",
+        "relative bg-card text-card-foreground group transition-all duration-200",
         FRAME_CLASS[frame],
         isDragOver && "ring-2 ring-[hsl(var(--rune))] ring-offset-2 ring-offset-background scale-[1.02] z-20"
       )}
@@ -101,88 +99,86 @@ export const CharacterCard = ({ character, worlds, onDelete, onDragStart, onDrop
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
-      <div data-card-anim={animation} className="will-change-transform">
-        <Link to={`/character/${id}`} className="block focus:outline-none" aria-label={`Otwórz kartę ${name}`}>
+      <Link to={`/character/${id}`} className="block focus:outline-none" aria-label={`Otwórz kartę ${name}`}>
 
-          {/* ── Full card as avatar image ── */}
-          <div className="aspect-[4/5] relative overflow-hidden">
+        {/* ── Full card as avatar image ── */}
+        <div className="aspect-[4/5] relative overflow-hidden">
 
-            {/* Layer 1: avatar fills entire card */}
-            <div className="absolute inset-0 bg-muted">
-              {avatar ? (
-                <img
-                  src={avatar}
-                  alt={`Awatar ${name}`}
-                  loading="lazy"
-                  className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-                />
-              ) : (
-                <div className="h-full w-full grid place-items-center bg-card/60 text-muted-foreground">
-                  <User className="h-16 w-16" />
-                </div>
-              )}
-            </div>
-
-            {/* Layer 2: avatar border overlay (subtle edge highlight) */}
-            {avatar && (
-              <div
-                className={cn(
-                  "absolute inset-0 pointer-events-none z-10",
-                  avatarBorder === "pixel" ? "" : "rounded-none",
-                  AVATAR_BORDER_CLASS[avatarBorder] ? "border" : ""
-                )}
-                style={{ borderColor: 'transparent' }}
+          {/* Layer 1: avatar fills entire card */}
+          <div className="absolute inset-0 bg-muted">
+            {avatar ? (
+              <img
+                src={avatar}
+                alt={`Awatar ${name}`}
+                loading="lazy"
+                className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
               />
-            )}
-
-            {/* Layer 3: bottom gradient for text readability */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
-
-            {/* Layer 4: name + tagline at bottom — fixed block for card uniformity */}
-            <div className="absolute bottom-0 inset-x-0 px-4 pb-3 pt-16">
-              <div className="h-[3.6rem] flex flex-col justify-end">
-                <h2
-                  className="leading-tight line-clamp-2 drop-shadow-lg"
-                  style={{ fontFamily: "var(--font-display)", color: "hsl(var(--rune))", textShadow: "0 2px 12px rgba(0,0,0,0.7)", fontSize: "1.35rem", lineHeight: 1.15 }}
-                >
-                  {name}
-                </h2>
-                <p
-                  className="italic mt-0.5 line-clamp-1 drop-shadow-lg"
-                  style={{ fontFamily: "var(--font-body)", color: "hsl(var(--muted-foreground))", textShadow: "0 1px 8px rgba(0,0,0,0.6)", fontSize: "0.85rem", lineHeight: 1.25 }}
-                >
-                  {tagline}
-                </p>
-              </div>
-            </div>
-
-            {/* World badge */}
-            {world && (
-              <span className="absolute top-2 left-2 z-10 font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 bg-black/70 text-[hsl(195,85%,60%)] border border-[hsl(195,85%,60%)/0.5] flex items-center gap-1 backdrop-blur-sm">
-                <Globe className="h-2.5 w-2.5" />{world.name}
-              </span>
-            )}
-
-            {/* Frame badge */}
-            <span className="absolute top-2 right-2 z-10 font-pixel text-[8px] uppercase px-1.5 py-1 bg-black/70 text-[hsl(var(--rune))] border border-[hsl(var(--rune)/0.5)] backdrop-blur-sm">
-              {palette}
-            </span>
-
-            {/* Drag handle — small chain icon, draggable */}
-            {onDragStart && (
-              <div
-                draggable
-                onDragStart={handleDragStart}
-                onClick={(e) => e.preventDefault()}
-                className="absolute top-2 left-1/2 -translate-x-1/2 z-20 h-6 w-6 rounded-full bg-black/70 border border-[hsl(var(--rune)/0.5)] grid place-items-center opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing hover:border-[hsl(var(--rune))] hover:scale-110"
-                title="Przeciągnij, aby połączyć z inną postacią"
-              >
-                <Link2 className="h-3 w-3 text-[hsl(var(--rune))]" />
+            ) : (
+              <div className="h-full w-full grid place-items-center bg-card/60 text-muted-foreground">
+                <User className="h-16 w-16" />
               </div>
             )}
           </div>
-        </Link>
-      </div>
+
+          {/* Layer 2: avatar border overlay (subtle edge highlight) */}
+          {avatar && (
+            <div
+              className={cn(
+                "absolute inset-0 pointer-events-none z-10",
+                avatarBorder === "pixel" ? "" : "rounded-none",
+                AVATAR_BORDER_CLASS[avatarBorder] ? "border" : ""
+              )}
+              style={{ borderColor: 'transparent' }}
+            />
+          )}
+
+          {/* Layer 3: bottom gradient for text readability */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
+
+          {/* Layer 4: name + tagline at bottom — fixed block for card uniformity */}
+          <div className="absolute bottom-0 inset-x-0 px-4 pb-3 pt-16">
+            <div className="h-[3.6rem] flex flex-col justify-end">
+              <h2
+                className="leading-tight line-clamp-2 drop-shadow-lg"
+                style={{ fontFamily: "var(--font-display)", color: "hsl(var(--rune))", textShadow: "0 2px 12px rgba(0,0,0,0.7)", fontSize: "1.35rem", lineHeight: 1.15 }}
+              >
+                {name}
+              </h2>
+              <p
+                className="italic mt-0.5 line-clamp-1 drop-shadow-lg"
+                style={{ fontFamily: "var(--font-body)", color: "hsl(var(--muted-foreground))", textShadow: "0 1px 8px rgba(0,0,0,0.6)", fontSize: "0.85rem", lineHeight: 1.25 }}
+              >
+                {tagline}
+              </p>
+            </div>
+          </div>
+
+          {/* World badge */}
+          {world && (
+            <span className="absolute top-2 left-2 z-10 font-mono text-[8px] uppercase tracking-wider px-1.5 py-0.5 bg-black/70 text-[hsl(195,85%,60%)] border border-[hsl(195,85%,60%)/0.5] flex items-center gap-1 backdrop-blur-sm">
+              <Globe className="h-2.5 w-2.5" />{world.name}
+            </span>
+          )}
+
+          {/* Frame badge */}
+          <span className="absolute top-2 right-2 z-10 font-pixel text-[8px] uppercase px-1.5 py-1 bg-black/70 text-[hsl(var(--rune))] border border-[hsl(var(--rune)/0.5)] backdrop-blur-sm">
+            {palette}
+          </span>
+
+          {/* Drag handle — small chain icon, draggable */}
+          {onDragStart && (
+            <div
+              draggable
+              onDragStart={handleDragStart}
+              onClick={(e) => e.preventDefault()}
+              className="absolute top-2 left-1/2 -translate-x-1/2 z-20 h-6 w-6 rounded-full bg-black/70 border border-[hsl(var(--rune)/0.5)] grid place-items-center opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing hover:border-[hsl(var(--rune))] hover:scale-110"
+              title="Przeciągnij, aby połączyć z inną postacią"
+            >
+              <Link2 className="h-3 w-3 text-[hsl(var(--rune))]" />
+            </div>
+          )}
+        </div>
+      </Link>
 
       {/* Bottom action bar */}
       <div className="flex items-center justify-between border-t border-border px-4 py-2">

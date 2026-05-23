@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Plus, LayoutDashboard, FolderPlus, ChevronDown, ChevronRight, Trash2, FolderMinus, FolderOpen, User, HardDrive, Search, Globe, X, Link2 } from "lucide-react";
 import { useVaultDB } from "@/hooks/useVaultDB";
-import { ParticleCanvas } from "@/components/vault/ParticleCanvas";
 import { CharacterCard } from "@/components/vault/CharacterCard";
 import { WorldCard } from "@/components/vault/WorldCard";
 import { ConnectionDialog } from "@/components/vault/ConnectionDialog";
@@ -305,8 +304,6 @@ const Index = () => {
       className="relative min-h-screen"
       onDragEnd={() => { setDragSourceId(null); setDragOverId(null); }}
     >
-      <ParticleCanvas effect={db.settings.effect} />
-
       <div className="fixed top-4 right-4 z-40 flex items-center gap-2">
         <SettingsModal db={db} setDb={setDb} />
       </div>
