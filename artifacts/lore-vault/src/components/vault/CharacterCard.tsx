@@ -109,20 +109,22 @@ export const CharacterCard = ({ character, worlds, onDelete }: Props) => {
             {/* Layer 3: bottom gradient for text readability */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
 
-            {/* Layer 4: name + tagline at bottom */}
+            {/* Layer 4: name + tagline at bottom — fixed block for card uniformity */}
             <div className="absolute bottom-0 inset-x-0 px-4 pb-3 pt-16">
-              <h2
-                className="text-xl leading-tight line-clamp-2 drop-shadow-lg"
-                style={{ fontFamily: "var(--font-display)", color: "hsl(var(--rune))", textShadow: "0 2px 12px rgba(0,0,0,0.7)" }}
-              >
-                {name}
-              </h2>
-              <p
-                className="text-sm italic mt-0.5 line-clamp-1 drop-shadow-lg"
-                style={{ fontFamily: "var(--font-body)", color: "hsl(var(--muted-foreground))", textShadow: "0 1px 8px rgba(0,0,0,0.6)" }}
-              >
-                {tagline}
-              </p>
+              <div className="h-[3.6rem] flex flex-col justify-end">
+                <h2
+                  className="leading-tight line-clamp-2 drop-shadow-lg"
+                  style={{ fontFamily: "var(--font-display)", color: "hsl(var(--rune))", textShadow: "0 2px 12px rgba(0,0,0,0.7)", fontSize: "1.35rem", lineHeight: 1.15 }}
+                >
+                  {name}
+                </h2>
+                <p
+                  className="italic mt-0.5 line-clamp-1 drop-shadow-lg"
+                  style={{ fontFamily: "var(--font-body)", color: "hsl(var(--muted-foreground))", textShadow: "0 1px 8px rgba(0,0,0,0.6)", fontSize: "0.85rem", lineHeight: 1.25 }}
+                >
+                  {tagline}
+                </p>
+              </div>
             </div>
 
             {/* World badge */}

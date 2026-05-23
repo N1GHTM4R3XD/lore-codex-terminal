@@ -123,7 +123,7 @@ function FontSelect({
         <SelectTrigger className="h-9 border-border" style={{ fontFamily: fontFamilyStack(value) }}>
           <SelectValue placeholder="Wybierz font" />
         </SelectTrigger>
-        <SelectContent className="max-h-72">
+        <SelectContent className="max-h-[420px]">
           {FONT_CATEGORIES.map((cat) => {
             const fonts = FONT_PRESETS.filter((f) => f.category === cat.id);
             if (!fonts.length) return null;
@@ -132,7 +132,10 @@ function FontSelect({
                 <SelectLabel className="font-mono text-[10px] uppercase tracking-widest">{cat.label}</SelectLabel>
                 {fonts.map((f) => (
                   <SelectItem key={f.family} value={f.family} onPointerEnter={() => loadFont(f.family)}>
-                    <span style={{ fontFamily: fontFamilyStack(f.family), fontSize: "0.9rem" }}>{f.family}</span>
+                    <span style={{ fontFamily: fontFamilyStack(f.family), fontSize: "1.05rem" }}>
+                      <span className="opacity-70 mr-1.5 text-[0.85rem]">Aa</span>
+                      {f.family}
+                    </span>
                   </SelectItem>
                 ))}
               </SelectGroup>
@@ -143,7 +146,10 @@ function FontSelect({
               <SelectLabel className="font-mono text-[10px] uppercase tracking-widest">Własne</SelectLabel>
               {customFonts.map((cf) => (
                 <SelectItem key={cf.id} value={cf.name} onPointerEnter={() => loadCustomFont(cf.name, cf.src)}>
-                  <span style={{ fontFamily: `"${cf.name}", system-ui, sans-serif`, fontSize: "0.9rem" }}>{cf.name}</span>
+                  <span style={{ fontFamily: `"${cf.name}", system-ui, sans-serif`, fontSize: "1.05rem" }}>
+                    <span className="opacity-70 mr-1.5 text-[0.85rem]">Aa</span>
+                    {cf.name}
+                  </span>
                 </SelectItem>
               ))}
             </SelectGroup>
