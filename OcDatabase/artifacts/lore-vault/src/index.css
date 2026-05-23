@@ -1,0 +1,436 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =========================================================
+   Lore Vault — Dark Fantasy Pixel Design System
+   All colors MUST be HSL.
+   ========================================================= */
+
+@layer base {
+  :root {
+    /* DEFAULT = pixel-dark */
+    --background: 30 10% 6%;
+    --foreground: 38 30% 88%;
+
+    --card: 28 14% 10%;
+    --card-foreground: 38 30% 88%;
+
+    --popover: 28 16% 8%;
+    --popover-foreground: 38 30% 90%;
+
+    --primary: 28 50% 65%;
+    --primary-foreground: 30 15% 8%;
+
+    --secondary: 30 12% 14%;
+    --secondary-foreground: 38 30% 88%;
+
+    --muted: 30 10% 12%;
+    --muted-foreground: 30 10% 60%;
+
+    --accent: 18 55% 40%;
+    --accent-foreground: 38 30% 92%;
+
+    --destructive: 0 65% 50%;
+    --destructive-foreground: 38 30% 95%;
+
+    --border: 30 18% 22%;
+    --input: 30 18% 14%;
+    --ring: 28 50% 65%;
+
+    --radius: 0.125rem;
+
+    --rune: 35 75% 70%;
+    --rune-glow: 35 90% 60%;
+    --ink: 38 35% 85%;
+    --vault-edge: 30 25% 22%;
+    --vault-deep: 30 30% 3%;
+
+    --gradient-hero: radial-gradient(120% 80% at 50% 0%, hsl(var(--primary) / 0.30) 0%, transparent 60%),
+                     radial-gradient(80% 60% at 50% 100%, hsl(var(--accent) / 0.25) 0%, transparent 70%),
+                     linear-gradient(180deg, hsl(var(--vault-deep)) 0%, hsl(var(--background)) 100%);
+    --gradient-panel: linear-gradient(180deg, hsl(var(--card) / 0.92) 0%, hsl(var(--background) / 0.94) 100%);
+    --gradient-rune: linear-gradient(135deg, hsl(var(--rune)) 0%, hsl(var(--primary)) 100%);
+
+    --shadow-vault: 0 30px 80px -20px hsl(var(--vault-deep)),
+                    0 0 0 1px hsl(var(--border));
+    --shadow-glow: 0 0 40px hsl(var(--primary) / 0.4);
+    --shadow-rune: 0 0 24px hsl(var(--rune-glow) / 0.5);
+    --shadow-pixel: 4px 4px 0 0 hsl(var(--vault-deep)), 0 0 0 1px hsl(var(--rune)/0.6);
+
+    --grain: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.5 0'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.35'/></svg>");
+
+    --sidebar-background: 30 10% 6%;
+    --sidebar-foreground: 38 30% 88%;
+    --sidebar-primary: 28 50% 65%;
+    --sidebar-primary-foreground: 30 15% 8%;
+    --sidebar-accent: 30 12% 14%;
+    --sidebar-accent-foreground: 38 30% 88%;
+    --sidebar-border: 30 18% 22%;
+    --sidebar-ring: 28 50% 65%;
+
+    /* Default font family stacks — overridden per-card via inline style on .lv-card-scope */
+    --font-display: "Inter", system-ui, sans-serif;
+    --font-body: "Inter", system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  }
+
+  [data-palette="pixel-dark"] {
+    --background: 30 10% 6%;
+    --card: 28 14% 10%;
+    --primary: 28 50% 65%;
+    --accent: 18 55% 40%;
+    --rune: 35 75% 70%;
+    --rune-glow: 35 90% 60%;
+    --ring: 28 50% 65%;
+    --border: 30 18% 22%;
+  }
+  [data-palette="abyss"] {
+    --background: 230 30% 5%;
+    --card: 230 28% 8%;
+    --primary: 195 85% 60%;
+    --accent: 270 70% 65%;
+    --rune: 195 90% 70%;
+    --rune-glow: 195 90% 60%;
+    --ring: 195 85% 60%;
+    --border: 230 30% 18%;
+  }
+  [data-palette="crimson"] {
+    --background: 350 35% 5%;
+    --card: 350 30% 8%;
+    --primary: 0 75% 55%;
+    --accent: 20 80% 55%;
+    --rune: 15 85% 65%;
+    --rune-glow: 0 90% 55%;
+    --ring: 0 75% 55%;
+    --border: 350 30% 18%;
+  }
+  [data-palette="arcane"] {
+    --background: 270 40% 5%;
+    --card: 270 32% 9%;
+    --primary: 280 80% 65%;
+    --accent: 200 90% 60%;
+    --rune: 280 90% 75%;
+    --rune-glow: 280 95% 65%;
+    --ring: 280 80% 65%;
+    --border: 270 30% 20%;
+  }
+  [data-palette="ember"] {
+    --background: 20 35% 5%;
+    --card: 20 30% 8%;
+    --primary: 30 95% 55%;
+    --accent: 0 80% 55%;
+    --rune: 40 95% 65%;
+    --rune-glow: 30 100% 55%;
+    --ring: 30 95% 55%;
+    --border: 20 30% 18%;
+  }
+  [data-palette="verdant"] {
+    --background: 150 30% 5%;
+    --card: 150 25% 8%;
+    --primary: 145 70% 50%;
+    --accent: 90 60% 55%;
+    --rune: 120 70% 70%;
+    --rune-glow: 145 80% 55%;
+    --ring: 145 70% 50%;
+    --border: 150 25% 18%;
+  }
+  [data-palette="cozy-forest"] {
+    --background: 90 18% 10%;
+    --card: 95 16% 14%;
+    --foreground: 60 25% 90%;
+    --primary: 95 28% 55%;
+    --accent: 35 40% 60%;
+    --rune: 75 45% 70%;
+    --rune-glow: 80 60% 60%;
+    --ring: 95 28% 55%;
+    --border: 90 18% 24%;
+    --muted: 90 14% 16%;
+    --muted-foreground: 80 12% 65%;
+  }
+  [data-palette="pastel-dream"] {
+    --background: 280 25% 10%;
+    --card: 280 22% 14%;
+    --foreground: 320 30% 92%;
+    --primary: 330 70% 75%;
+    --accent: 200 60% 75%;
+    --rune: 280 75% 80%;
+    --rune-glow: 320 90% 75%;
+    --ring: 330 70% 75%;
+    --border: 280 25% 25%;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  html { scroll-behavior: smooth; }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 17px;
+    line-height: 1.6;
+    background-image: var(--grain), radial-gradient(60% 40% at 50% 0%, hsl(var(--primary) / 0.08), transparent 70%);
+    background-attachment: fixed;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Inter', system-ui, sans-serif;
+    letter-spacing: 0.02em;
+    font-weight: 600;
+  }
+  ::selection { background: hsl(var(--primary) / 0.4); color: hsl(var(--foreground)); }
+
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: hsl(var(--background)); }
+  ::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, hsl(var(--border)), hsl(var(--vault-edge)));
+    border-radius: 0;
+    border: 2px solid hsl(var(--background));
+  }
+  ::-webkit-scrollbar-thumb:hover { background: hsl(var(--primary) / 0.5); }
+
+  /* Accessibility focus ring */
+  :focus-visible {
+    outline: 2px solid hsl(var(--rune));
+    outline-offset: 2px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+    }
+  }
+}
+
+@layer components {
+  .font-display    { font-family: 'Inter', system-ui, sans-serif; }
+  .font-body       { font-family: 'Inter', system-ui, sans-serif; }
+  .font-mono       { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+  .font-pixel      { font-family: 'Press Start 2P', monospace; letter-spacing: 0; }
+  .font-pixel-body { font-family: 'VT323', monospace; font-size: 1.15em; }
+  .font-gothic     { font-family: 'Cinzel', serif; }
+  .font-handwritten{ font-family: 'Caveat', cursive; }
+
+  .vault-panel {
+    background: var(--gradient-panel);
+    border: 1px solid hsl(var(--border));
+    box-shadow: var(--shadow-vault);
+    position: relative;
+    overflow: hidden;
+  }
+  .vault-panel::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image: var(--grain);
+    opacity: 0.4;
+    pointer-events: none;
+    mix-blend-mode: overlay;
+  }
+
+  .rune-text {
+    background: var(--gradient-rune);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 0 0 30px hsl(var(--rune-glow) / 0.3);
+  }
+
+  .glow-border {
+    box-shadow: inset 0 0 0 1px hsl(var(--border)),
+                0 0 30px -10px hsl(var(--primary) / 0.5);
+  }
+
+  /* ===== FRAMES (per character card) ===== */
+  .frame-pixel {
+    border: 2px solid hsl(var(--rune));
+    box-shadow:
+      0 0 0 2px hsl(var(--background)),
+      0 0 0 4px hsl(var(--rune)/0.6),
+      inset 0 0 0 1px hsl(var(--vault-deep)),
+      8px 8px 0 0 hsl(var(--vault-deep));
+    image-rendering: pixelated;
+    border-radius: 0;
+  }
+  .frame-ornament {
+    border: 1px solid hsl(var(--rune)/0.7);
+    border-radius: 18px;
+    position: relative;
+  }
+  .frame-ornament::before, .frame-ornament::after {
+    content: ''; position: absolute; width: 26px; height: 26px;
+    border: 2px solid hsl(var(--rune));
+    pointer-events: none;
+  }
+  .frame-ornament::before { top: -6px; left: -6px; border-right: 0; border-bottom: 0; border-top-left-radius: 14px; }
+  .frame-ornament::after  { bottom: -6px; right: -6px; border-left: 0; border-top: 0; border-bottom-right-radius: 14px; }
+  .frame-neon {
+    border: 1px solid hsl(var(--primary));
+    border-radius: 6px;
+    box-shadow:
+      0 0 0 1px hsl(var(--primary)/0.4),
+      0 0 14px hsl(var(--primary)/0.55),
+      inset 0 0 14px hsl(var(--primary)/0.18);
+  }
+  .frame-parchment {
+    border: 1px solid hsl(var(--rune)/0.5);
+    border-radius: 4px;
+    background: linear-gradient(180deg, hsl(var(--card)) 0%, hsl(var(--background)) 100%);
+    box-shadow: inset 0 0 60px hsl(var(--vault-deep)/0.6), var(--shadow-vault);
+  }
+  .frame-none { border: 1px solid hsl(var(--border)); border-radius: var(--radius); }
+  .frame-arcane {
+    border: 1px solid hsl(var(--rune)/0.85);
+    outline: 1px solid hsl(var(--rune)/0.3);
+    outline-offset: 4px;
+    border-radius: 3px;
+    box-shadow: 0 0 22px hsl(var(--rune)/0.22), inset 0 0 32px hsl(var(--vault-deep)/0.5);
+  }
+  .frame-gothic {
+    border: 3px solid hsl(var(--rune)/0.9);
+    border-radius: 0;
+    box-shadow:
+      inset 5px 5px 0 hsl(var(--rune)/0.1),
+      inset -5px -5px 0 hsl(var(--rune)/0.1),
+      -3px -3px 0 hsl(var(--rune)/0.45),
+      3px 3px 0 hsl(var(--rune)/0.45);
+  }
+  .frame-circuit {
+    border: 1px solid hsl(var(--primary)/0.7);
+    border-radius: 0;
+    box-shadow: inset 0 0 0 3px hsl(var(--background)), inset 0 0 0 5px hsl(var(--primary)/0.25);
+    position: relative;
+  }
+  .frame-circuit::before, .frame-circuit::after {
+    content: ''; position: absolute; width: 14px; height: 14px;
+    border: 2px solid hsl(var(--primary)); pointer-events: none;
+  }
+  .frame-circuit::before { top: 3px; left: 3px; border-right: 0; border-bottom: 0; }
+  .frame-circuit::after  { bottom: 3px; right: 3px; border-left: 0; border-top: 0; }
+  .frame-minimal {
+    border: 1px solid hsl(var(--rune)/0.2);
+    border-radius: var(--radius);
+    box-shadow: 0 6px 32px hsl(var(--vault-deep)/0.5);
+  }
+
+  .corner-frame { position: relative; }
+  .corner-frame::before, .corner-frame::after {
+    content: ''; position: absolute; width: 18px; height: 18px;
+    border: 1px solid hsl(var(--rune) / 0.7);
+    pointer-events: none;
+  }
+  .corner-frame::before { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
+  .corner-frame::after  { bottom: -1px; right: -1px; border-left: 0; border-top: 0; }
+
+  /* ===== PIXEL BUTTON ===== */
+  .pixel-btn {
+    @apply font-pixel text-[10px] uppercase px-3 py-2 transition-transform;
+    background: hsl(var(--card));
+    color: hsl(var(--rune));
+    border: 2px solid hsl(var(--rune));
+    box-shadow: 4px 4px 0 0 hsl(var(--vault-deep));
+    border-radius: 0;
+  }
+  .pixel-btn:hover { transform: translate(-1px,-1px); box-shadow: 5px 5px 0 0 hsl(var(--vault-deep)); }
+  .pixel-btn:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 0 hsl(var(--vault-deep)); }
+
+  .wiki-link {
+    @apply text-[hsl(var(--rune))] cursor-pointer underline decoration-dotted underline-offset-4 transition-all;
+    font-family: var(--font-display, 'Pixelify Sans', serif);
+  }
+  .wiki-link:hover {
+    color: hsl(var(--rune-glow));
+    text-shadow: 0 0 12px hsl(var(--rune-glow) / 0.6);
+  }
+
+  .entity-highlight {
+    @apply text-[hsl(var(--primary))] cursor-help border-b border-dotted border-[hsl(var(--primary)/0.5)] transition-colors;
+    font-family: var(--font-display, 'Pixelify Sans', serif);
+  }
+  .entity-highlight:hover { color: hsl(var(--rune-glow)); }
+
+  /* Per-card font scope — overrides global font-display/body/mono when --font-* vars are set. */
+  .lv-card-scope :where(.font-display, h1, h2, h3, h4, h5, h6, .card-display, .rune-text) {
+    font-family: var(--font-display, 'Pixelify Sans', serif);
+  }
+  .lv-card-scope :where(.font-body, .lore-prose) {
+    font-family: var(--font-body, 'Cormorant Garamond', serif);
+  }
+  .lv-card-scope :where(.font-mono) {
+    font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  }
+
+  /* Animations applied via data-attr */
+  [data-card-anim="float"]         { animation: card-float 5s ease-in-out infinite; }
+  [data-card-anim="glow"]          { animation: card-glow 3s ease-in-out infinite; }
+  [data-card-anim="shake"]         { animation: card-shake 2.2s ease-in-out infinite; }
+  [data-card-anim="sparkle"]       { animation: card-sparkle 2.6s ease-in-out infinite; }
+  [data-card-anim="pixel-twinkle"] { animation: card-pixel-twinkle 2.4s ease-in-out infinite; }
+  [data-card-anim="tilt"]          { animation: card-tilt 6s ease-in-out infinite; transform-origin: center; }
+  [data-card-anim="breathe"]       { animation: card-breathe 4s ease-in-out infinite; }
+  [data-card-anim="leaves"]        { animation: card-leaves 7s ease-in-out infinite; transform-origin: top center; }
+  [data-card-anim="rain-card"]     { animation: card-rain-anim 2.5s ease-in-out infinite; }
+  [data-card-anim="fog"]           { animation: card-fog 6s ease-in-out infinite; }
+  [data-card-anim="bubbles"]       { animation: card-bubbles 3.5s ease-in-out infinite; }
+  [data-card-anim="waves"]         { animation: card-waves 5s ease-in-out infinite; }
+  [data-card-anim="stars-card"]    { animation: card-stars 4.5s ease-in-out infinite; }
+}
+
+@keyframes card-float          { 0%,100%{ transform:translateY(0)} 50%{ transform:translateY(-6px)} }
+@keyframes card-glow            { 0%,100%{ filter: drop-shadow(0 0 0 hsl(var(--rune)/0))} 50%{ filter: drop-shadow(0 0 14px hsl(var(--rune)/0.7))} }
+@keyframes card-shake           { 0%,100%{ transform:translateX(0)} 25%{ transform:translateX(-2px)} 75%{ transform:translateX(2px)} }
+@keyframes card-sparkle         { 0%,100%{ filter: brightness(1)} 50%{ filter: brightness(1.15) saturate(1.15)} }
+@keyframes card-pixel-twinkle   { 0%,100%{ filter: drop-shadow(0 0 0 hsl(var(--rune)/0))} 50%{ filter: drop-shadow(0 0 8px hsl(var(--rune)/0.9))} }
+@keyframes card-tilt            { 0%,100%{ transform: rotate(-0.6deg)} 50%{ transform: rotate(0.6deg)} }
+@keyframes card-breathe         { 0%,100%{ transform: scale(1)} 50%{ transform: scale(1.015)} }
+
+/* ===== NEW CARD ANIMATIONS ===== */
+@keyframes card-leaves {
+  0%   { transform: rotate(-1deg) translate(0,0); }
+  20%  { transform: rotate(1.2deg) translate(3px,-4px); }
+  40%  { transform: rotate(-0.6deg) translate(-2px,-7px); }
+  60%  { transform: rotate(1.5deg) translate(4px,-5px); }
+  80%  { transform: rotate(-0.8deg) translate(-1px,-2px); }
+  100% { transform: rotate(-1deg) translate(0,0); }
+}
+@keyframes card-rain-anim {
+  0%,100% { filter: brightness(1) drop-shadow(0 -2px 4px hsla(200,80%,70%,0.05)); }
+  50%     { filter: brightness(1.04) drop-shadow(0 5px 10px hsla(200,80%,70%,0.45)); }
+}
+@keyframes card-fog {
+  0%,100% { filter: blur(0px) brightness(1); transform: scale(1); }
+  40%     { filter: blur(0.8px) brightness(1.06); transform: scale(1.008); }
+  70%     { filter: blur(1.4px) brightness(1.12); transform: scale(1.012); }
+}
+@keyframes card-bubbles {
+  0%,100% { transform: scale(1) translateY(0); }
+  20%     { transform: scale(1.018) translateY(-5px); }
+  45%     { transform: scale(0.995) translateY(-2px); }
+  65%     { transform: scale(1.022) translateY(-8px); }
+  85%     { transform: scale(1.005) translateY(-3px); }
+}
+@keyframes card-waves {
+  0%,100% { transform: translateY(0) skewX(0deg);   filter: drop-shadow(0 4px 8px hsla(195,80%,60%,0.15)); }
+  25%     { transform: translateY(-4px) skewX(0.4deg); filter: drop-shadow(0 10px 18px hsla(195,80%,60%,0.35)); }
+  50%     { transform: translateY(-2px) skewX(0deg);   filter: drop-shadow(0 7px 14px hsla(195,80%,60%,0.25)); }
+  75%     { transform: translateY(-5px) skewX(-0.4deg);filter: drop-shadow(0 12px 22px hsla(195,80%,60%,0.3)); }
+}
+@keyframes card-stars {
+  0%,100% { filter: brightness(1) drop-shadow(0 0 0 transparent); }
+  25%     { filter: brightness(1.12) drop-shadow(0 0 14px hsla(45,90%,70%,0.85)); }
+  55%     { filter: brightness(1.06) drop-shadow(0 0 9px hsla(280,80%,70%,0.65)); }
+  80%     { filter: brightness(1.14) drop-shadow(0 0 18px hsla(200,80%,75%,0.75)); }
+}
+
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+  .bg-grain { background-image: var(--grain); }
+  .shadow-vault { box-shadow: var(--shadow-vault); }
+  .shadow-glow  { box-shadow: var(--shadow-glow); }
+  .shadow-rune  { box-shadow: var(--shadow-rune); }
+  .shadow-pixel { box-shadow: var(--shadow-pixel); }
+  .bg-gradient-hero { background: var(--gradient-hero); }
+  .bg-gradient-rune { background: var(--gradient-rune); }
+  .pixelated { image-rendering: pixelated; }
+}
