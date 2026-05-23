@@ -1,15 +1,15 @@
-import { useState } from "react";
-import { Plus, LayoutDashboard, FolderPlus, ChevronDown, ChevronRight, Trash2, FolderMinus, FolderOpen, User, HardDrive, Search, Globe, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Plus, LayoutDashboard, FolderPlus, ChevronDown, ChevronRight, Trash2, FolderMinus, FolderOpen, User, HardDrive, Search, Globe, X, Link2 } from "lucide-react";
 import { useVaultDB } from "@/hooks/useVaultDB";
 import { ParticleCanvas } from "@/components/vault/ParticleCanvas";
 import { CharacterCard } from "@/components/vault/CharacterCard";
 import { WorldCard } from "@/components/vault/WorldCard";
+import { ConnectionDialog } from "@/components/vault/ConnectionDialog";
 import { SettingsModal } from "@/components/vault/SettingsModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Link, useNavigate } from "react-router-dom";
-import { useEffect } from "react";
 import { Character, Folder, World } from "@/lib/vault-types";
 import { cn } from "@/lib/utils";
 import { useLang } from "@/hooks/useLang";
@@ -54,6 +54,9 @@ function FolderSection({
   onDeleteChar,
   onRemoveChar,
   onAddChar,
+  onDragStart,
+  onDropChar,
+  dragOverId,
 }: {
   folder: Folder;
   characters: Character[];
@@ -64,6 +67,9 @@ function FolderSection({
   onDeleteChar: (id: string) => void;
   onRemoveChar: (charId: string) => void;
   onAddChar: (charId: string) => void;
+  onDragStart?: (id: string) => void;
+  onDropChar?: (targetId: string) => void;
+  dragOverId?: string | null;
 }) {
   const [collapsed, setCollapsed] = useState(folder.collapsed ?? false);
   const [renaming, setRenaming] = useState(false);
@@ -145,7 +151,14 @@ function FolderSection({
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pl-4">
               {characters.map((c) => (
                 <div key={c.id} className="relative group/card">
-                  <CharacterCard character={c} worlds={worlds} onDelete={onDeleteChar} />
+                  <CharacterCard
+                    character={c}
+                    worlds={worlds}
+                    onDelete={onDeleteChar}
+                    onDragStart={onDragStart}
+                    onDropChar={onDropChar}
+                    dragOverId={dragOverId}
+                  />
                   <button
                     onClick={() => onRemoveChar(c.id)}
                     className="absolute top-2 left-2 z-20 h-6 w-6 bg-background/90 border border-border rounded-full grid place-items-center opacity-0 group-hover/card:opacity-100 transition-opacity hover:text-destructive"
@@ -208,13 +221,20 @@ const Index = () => {
   const {
     db, addCharacter, deleteCharacter, setDb,
     addFolder, updateFolder, deleteFolder, toggleCharInFolder,
-    addWorld, deleteWorld, addCustomFont, removeCustomFont,
+    addWorld, deleteWorld, addConnection, deleteConnection,
+    addCustomFont, removeCustomFont,
   } = useVaultDB();
   const navigate = useNavigate();
 
   const [showFolderCreate, setShowFolderCreate] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [search, setSearch] = useState("");
+  const [dragSourceId, setDragSourceId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const [connDialogOpen, setConnDialogOpen] = useState(false);
+  const [connFromId, setConnFromId] = useState("");
+  const [connToId, setConnToId] = useState("");
+  const [connFilter, setConnFilter] = useState<"all" | string>("all");
 
   useEffect(() => {
     document.documentElement.dataset.palette = "pixel-dark";
@@ -253,8 +273,38 @@ const Index = () => {
       )
     : worlds;
 
+  const handleDragStart = (id: string) => setDragSourceId(id);
+
+  const handleDropChar = (targetId: string) => {
+    if (dragSourceId && dragSourceId !== targetId) {
+      setConnFromId(dragSourceId);
+      setConnToId(targetId);
+      setConnDialogOpen(true);
+    }
+    setDragSourceId(null);
+    setDragOverId(null);
+  };
+
+  const handleSaveConnection = (label: string, desc: string, color: string) => {
+    addConnection({
+      fromId: connFromId,
+      fromType: "character",
+      toId: connToId,
+      toType: "character",
+      label,
+      description: desc || undefined,
+      color,
+    });
+    setConnDialogOpen(false);
+    setConnFromId("");
+    setConnToId("");
+  };
+
   return (
-    <div className="relative min-h-screen">
+    <div
+      className="relative min-h-screen"
+      onDragEnd={() => { setDragSourceId(null); setDragOverId(null); }}
+    >
       <ParticleCanvas effect={db.settings.effect} />
 
       <div className="fixed top-4 right-4 z-40 flex items-center gap-2">
@@ -383,7 +433,15 @@ const Index = () => {
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                     {filteredChars!.map((c) => (
-                      <CharacterCard key={c.id} character={c} worlds={db.worlds} onDelete={deleteCharacter} />
+                      <CharacterCard
+                        key={c.id}
+                        character={c}
+                        worlds={db.worlds}
+                        onDelete={deleteCharacter}
+                        onDragStart={handleDragStart}
+                        onDropChar={handleDropChar}
+                        dragOverId={dragOverId}
+                      />
                     ))}
                   </div>
                 </div>
@@ -449,6 +507,9 @@ const Index = () => {
                         onDeleteChar={deleteCharacter}
                         onRemoveChar={(charId) => toggleCharInFolder(folder.id, charId)}
                         onAddChar={(charId) => toggleCharInFolder(folder.id, charId)}
+                        onDragStart={handleDragStart}
+                        onDropChar={handleDropChar}
+                        dragOverId={dragOverId}
                       />
                     );
                   })}
@@ -465,7 +526,14 @@ const Index = () => {
                       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 animate-fade-in">
                         {(folders.length === 0 ? db.characters : unassignedChars).map((c) => (
                           <div key={c.id} className="relative group/card">
-                            <CharacterCard character={c} worlds={db.worlds} onDelete={deleteCharacter} />
+                            <CharacterCard
+                              character={c}
+                              worlds={db.worlds}
+                              onDelete={deleteCharacter}
+                              onDragStart={handleDragStart}
+                              onDropChar={handleDropChar}
+                              dragOverId={dragOverId}
+                            />
                             {folders.length > 0 && (
                               <div className="absolute top-2 left-2 z-20 opacity-0 group-hover/card:opacity-100 transition-opacity">
                                 <Select onValueChange={(fid) => toggleCharInFolder(fid, c.id)}>
@@ -525,6 +593,120 @@ const Index = () => {
                   </div>
                 </div>
               )}
+
+              {/* ── CONNECTIONS SECTION ── */}
+              {(db.connections ?? []).length > 0 && (
+                <div className="border-t border-border pt-10">
+                  <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+                    <div className="flex items-center gap-3">
+                      <Link2 className="h-5 w-5 text-[hsl(var(--rune))]" />
+                      <h2 className="font-display text-2xl" style={{ color: "hsl(var(--rune))" }}>
+                        Więzi
+                      </h2>
+                      <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+                        {(db.connections ?? []).length}
+                      </span>
+                    </div>
+                    {/* Filter by character */}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <button
+                        onClick={() => setConnFilter("all")}
+                        className={`text-[10px] uppercase tracking-wider px-2 py-1 rounded border transition ${
+                          connFilter === "all"
+                            ? "border-[hsl(var(--rune))] text-[hsl(var(--rune))]"
+                            : "border-border text-muted-foreground"
+                        }`}
+                      >
+                        Wszystkie
+                      </button>
+                      {db.characters.map((c) => {
+                        const count = (db.connections ?? []).filter(
+                          (cn) => cn.fromId === c.id || cn.toId === c.id
+                        ).length;
+                        if (count === 0) return null;
+                        return (
+                          <button
+                            key={c.id}
+                            onClick={() => setConnFilter(c.id)}
+                            className={`text-[10px] uppercase tracking-wider px-2 py-1 rounded border transition flex items-center gap-1 ${
+                              connFilter === c.id
+                                ? "border-[hsl(var(--rune))] text-[hsl(var(--rune))]"
+                                : "border-border text-muted-foreground"
+                            }`}
+                          >
+                            {c.avatar && <img src={c.avatar} alt="" className="h-3 w-3 rounded-full object-cover" />}
+                            {c.name} <span className="opacity-60">({count})</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 animate-fade-in">
+                    {(db.connections ?? [])
+                      .filter((c) => {
+                        if (connFilter === "all") return true;
+                        return c.fromId === connFilter || c.toId === connFilter;
+                      })
+                      .map((conn) => {
+                        const from = db.characters.find((c) => c.id === conn.fromId);
+                        const to = db.characters.find((c) => c.id === conn.toId);
+                        if (!from || !to) return null;
+                        return (
+                          <div
+                            key={conn.id}
+                            className="vault-panel p-3 flex items-center gap-3 group relative"
+                          >
+                            {/* From */}
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <img
+                                src={from.avatar || ""}
+                                alt={from.name}
+                                className="h-8 w-8 rounded-full object-cover border border-border shrink-0"
+                              />
+                              <span className="text-sm truncate">{from.name}</span>
+                            </div>
+
+                            {/* Arrow + label */}
+                            <div className="flex flex-col items-center shrink-0">
+                              <Link2 className="h-3 w-3 text-muted-foreground" />
+                              <span
+                                className="text-[10px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded"
+                                style={{
+                                  color: conn.color || "hsl(var(--rune))",
+                                  border: `1px solid ${conn.color || "hsl(var(--rune))"}`,
+                                }}
+                              >
+                                {conn.label}
+                              </span>
+                            </div>
+
+                            {/* To */}
+                            <div className="flex items-center gap-2 flex-1 min-w-0 justify-end">
+                              <span className="text-sm truncate">{to.name}</span>
+                              <img
+                                src={to.avatar || ""}
+                                alt={to.name}
+                                className="h-8 w-8 rounded-full object-cover border border-border shrink-0"
+                              />
+                            </div>
+
+                            {/* Delete */}
+                            <button
+                              onClick={() => {
+                                if (confirm("Usunąć to powiązanie?")) deleteConnection(conn.id);
+                              }}
+                              className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-background border border-border grid place-items-center opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive"
+                              aria-label="Usuń powiązanie"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </div>
+              )}
             </>
           )}
         </section>
@@ -540,6 +722,21 @@ const Index = () => {
           </span>
         </footer>
       </main>
+
+      {/* Drag & drop connection dialog */}
+      {connDialogOpen && (
+        <ConnectionDialog
+          fromId={connFromId}
+          toId={connToId}
+          characters={db.characters}
+          onSave={handleSaveConnection}
+          onClose={() => {
+            setConnDialogOpen(false);
+            setConnFromId("");
+            setConnToId("");
+          }}
+        />
+      )}
     </div>
   );
 };

@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Trash2, User, Globe } from "lucide-react";
+import { Trash2, User, Globe, Link2 } from "lucide-react";
 import { CSSProperties, useEffect } from "react";
 import { Character, AvatarBorderStyle, World } from "@/lib/vault-types";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,9 @@ interface Props {
   character: Character;
   worlds?: World[];
   onDelete: (id: string) => void;
+  onDragStart?: (id: string) => void;
+  onDropChar?: (targetId: string) => void;
+  dragOverId?: string | null;
 }
 
 const FRAME_CLASS: Record<Character["frame"], string> = {
@@ -51,12 +54,13 @@ export const AVATAR_BORDER_CLASS: Record<AvatarBorderStyle, string> = {
   aura:     "border-0 shadow-[0_0_0_4px_hsl(var(--rune)/0.35),0_0_0_8px_hsl(var(--rune)/0.15),0_0_24px_hsl(var(--rune)/0.4)]",
 };
 
-export const CharacterCard = ({ character, worlds, onDelete }: Props) => {
+export const CharacterCard = ({ character, worlds, onDelete, onDragStart, onDropChar, dragOverId }: Props) => {
   const { id, name, tagline, avatar, palette, animation, frame } = character;
   const world = worlds?.find((w) => w.characterIds?.includes(id));
   const f = character.fonts ?? { display: character.font, body: "Cormorant Garamond", mono: "JetBrains Mono" };
   const avatarBorder = character.avatarBorder ?? "rune";
   const bgOpacity = (character.bgOpacity ?? 65) / 100;
+  const isDragOver = dragOverId === id;
 
   useEffect(() => { loadFonts([f.display, f.body, f.mono]); }, [f.display, f.body, f.mono]);
 
@@ -66,11 +70,36 @@ export const CharacterCard = ({ character, worlds, onDelete }: Props) => {
     ["--font-mono" as any]: fontFamilyStack(f.mono),
   };
 
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.setData("text/char-id", id);
+    e.dataTransfer.effectAllowed = "link";
+    onDragStart?.(id);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "link";
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const sourceId = e.dataTransfer.getData("text/char-id");
+    if (sourceId && sourceId !== id) {
+      onDropChar?.(id);
+    }
+  };
+
   return (
     <article
       data-palette={palette}
-      className={`relative bg-card text-card-foreground ${FRAME_CLASS[frame]} group lv-card-scope`}
+      className={cn(
+        "relative bg-card text-card-foreground group lv-card-scope transition-all duration-200",
+        FRAME_CLASS[frame],
+        isDragOver && "ring-2 ring-[hsl(var(--rune))] ring-offset-2 ring-offset-background scale-[1.02] z-20"
+      )}
       style={fontStyle}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
     >
       <div data-card-anim={animation} className="will-change-transform">
         <Link to={`/character/${id}`} className="block focus:outline-none" aria-label={`Otwórz kartę ${name}`}>
@@ -138,6 +167,19 @@ export const CharacterCard = ({ character, worlds, onDelete }: Props) => {
             <span className="absolute top-2 right-2 z-10 font-pixel text-[8px] uppercase px-1.5 py-1 bg-black/70 text-[hsl(var(--rune))] border border-[hsl(var(--rune)/0.5)] backdrop-blur-sm">
               {palette}
             </span>
+
+            {/* Drag handle — small chain icon, draggable */}
+            {onDragStart && (
+              <div
+                draggable
+                onDragStart={handleDragStart}
+                onClick={(e) => e.preventDefault()}
+                className="absolute top-2 left-1/2 -translate-x-1/2 z-20 h-6 w-6 rounded-full bg-black/70 border border-[hsl(var(--rune)/0.5)] grid place-items-center opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing hover:border-[hsl(var(--rune))] hover:scale-110"
+                title="Przeciągnij, aby połączyć z inną postacią"
+              >
+                <Link2 className="h-3 w-3 text-[hsl(var(--rune))]" />
+              </div>
+            )}
           </div>
         </Link>
       </div>
