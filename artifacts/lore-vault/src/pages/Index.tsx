@@ -208,7 +208,7 @@ const Index = () => {
   const {
     db, addCharacter, deleteCharacter, setDb,
     addFolder, updateFolder, deleteFolder, toggleCharInFolder,
-    deleteWorld, addCustomFont, removeCustomFont,
+    addWorld, deleteWorld, addCustomFont, removeCustomFont,
   } = useVaultDB();
   const navigate = useNavigate();
 
@@ -287,6 +287,19 @@ const Index = () => {
               aria-label="Dodaj nową kartę postaci"
             >
               <Plus className="h-3 w-3 mr-1.5" /> Nowa karta
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const w = addWorld({ name: "Nowy świat", description: "", characterIds: [] });
+                navigate(`/world/${w.id}`);
+              }}
+              className="font-mono uppercase text-xs gap-1"
+              aria-label="Dodaj nowy świat"
+            >
+              <Globe className="h-3 w-3" /> Nowy świat
             </Button>
 
             {showFolderCreate ? (
