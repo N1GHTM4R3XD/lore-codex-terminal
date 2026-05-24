@@ -58,7 +58,7 @@ function ImagePicker({
   };
 
   return (
-    <div className="absolute z-20 top-full mt-2 w-80 vault-panel p-4 animate-fade-in space-y-3">
+    <div className="absolute z-50 top-0 left-full ml-2 w-80 vault-panel p-4 animate-fade-in space-y-3 max-h-[80vh] overflow-y-auto max-w-[min(20rem,90vw)]">
       <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">{label}</p>
 
       {/* Mode toggle */}
