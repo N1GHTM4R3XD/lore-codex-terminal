@@ -90,7 +90,11 @@ const CharacterPage = () => {
       data-card-font="custom"
       style={fontStyle}
     >
-      <ParticleCanvas effect={db.settings.effect} />
+      {/* Global background effect: only when character has no own animation */}
+      {character.animation === "none" && (
+        <ParticleCanvas effect={db.settings.effect} />
+      )}
+      {/* Per-character background effect */}
       {character.animation !== "none" && (
         <ParticleCanvas effect={character.animation} characterLayer />
       )}
