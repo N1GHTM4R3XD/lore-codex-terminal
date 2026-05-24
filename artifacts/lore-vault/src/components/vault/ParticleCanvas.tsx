@@ -150,9 +150,12 @@ export const ParticleCanvas = ({ effect, characterLayer }: Props) => {
           if (p.y > h) { p.y = -20; p.x = Math.random() * w; }
 
         } else if (effect === "stars") {
-          const tw = 0.5 + 0.5 * Math.sin(t * 2 + p.x);
-          ctx.fillStyle = `hsla(45, 80%, 80%, ${p.a * tw})`;
+          const tw = 0.3 + 0.7 * Math.sin(t * 2 + p.x);
+          const alpha = Math.max(0.15, p.a * tw);
+          ctx.globalCompositeOperation = "lighter";
+          ctx.fillStyle = `hsla(45, 90%, 88%, ${alpha})`;
           ctx.beginPath(); ctx.arc(p.x, p.y, p.r * dpr, 0, Math.PI * 2); ctx.fill();
+          ctx.globalCompositeOperation = "source-over";
 
         } else if (effect === "fire") {
           p.life! -= 0.012;

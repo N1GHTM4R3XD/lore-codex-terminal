@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { VaultState } from "@/lib/vault-types";
 import { cn } from "@/lib/utils";
+import { ImageCropper } from "./ImageCropper";
 
 interface Props {
   state: VaultState;
@@ -27,12 +28,14 @@ function ImagePicker({
   onSave,
   onClose,
   aspectHint,
+  onFileSelect,
 }: {
   label: string;
   current: string;
   onSave: (url: string) => void;
   onClose: () => void;
   aspectHint?: string;
+  onFileSelect?: (dataUrl: string) => void;
 }) {
   const [urlDraft, setUrlDraft] = useState(current);
   const [mode, setMode] = useState<"url" | "upload">("url");
@@ -46,8 +49,12 @@ function ImagePicker({
     const file = e.target.files?.[0];
     if (!file) return;
     const dataUrl = await readFileAsDataUrl(file);
-    onSave(dataUrl);
-    onClose();
+    if (onFileSelect) {
+      onFileSelect(dataUrl);
+    } else {
+      onSave(dataUrl);
+      onClose();
+    }
   };
 
   return (
@@ -135,6 +142,7 @@ export const Hero = ({ state, update }: Props) => {
   const [editing, setEditing] = useState(false);
   const [avOpen, setAvOpen] = useState(false);
   const [bgOpen, setBgOpen] = useState(false);
+  const [cropDataUrl, setCropDataUrl] = useState<string | null>(null);
 
   return (
     <header className="relative isolate overflow-hidden">
@@ -194,9 +202,10 @@ export const Hero = ({ state, update }: Props) => {
               <ImagePicker
                 label="Awatar postaci"
                 current={state.avatar}
-                onSave={(url) => update({ avatar: url })}
+                onSave={(url) => { update({ avatar: url }); setAvOpen(false); }}
                 onClose={() => setAvOpen(false)}
                 aspectHint="Najlepiej kwadratowe zdjęcie (1:1)"
+                onFileSelect={(dataUrl) => { setCropDataUrl(dataUrl); setAvOpen(false); }}
               />
             )}
           </div>
@@ -273,6 +282,17 @@ export const Hero = ({ state, update }: Props) => {
         </div>
       </div>
       <div className="h-px bg-gradient-to-r from-transparent via-[hsl(var(--rune)/0.6)] to-transparent" />
+
+      {/* Avatar cropper modal */}
+      {cropDataUrl && (
+        <ImageCropper
+          src={cropDataUrl}
+          aspect={1}
+          shape="circle"
+          onCrop={(dataUrl) => { update({ avatar: dataUrl }); setCropDataUrl(null); }}
+          onCancel={() => setCropDataUrl(null)}
+        />
+      )}
     </header>
   );
 };

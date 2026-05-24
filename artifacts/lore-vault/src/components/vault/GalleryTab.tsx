@@ -46,15 +46,43 @@ export const GalleryTab = ({ state, update }: Props) => {
     setAddOpen(false);
   };
 
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  /** Resize + compress an image before saving to localStorage. */
+  async function compressFile(file: File, maxW = 1600, quality = 0.85): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const src = ev.target?.result as string;
+        const img = new Image();
+        img.onload = () => {
+          const ratio = Math.min(maxW / img.naturalWidth, 1);
+          const w = Math.round(img.naturalWidth * ratio);
+          const h = Math.round(img.naturalHeight * ratio);
+          const canvas = document.createElement("canvas");
+          canvas.width = w;
+          canvas.height = h;
+          canvas.getContext("2d")!.drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL("image/jpeg", quality));
+        };
+        img.onerror = reject;
+        img.src = src;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const dataUrl = ev.target?.result as string;
-      add(dataUrl);
-    };
-    reader.readAsDataURL(file);
+    try {
+      const compressed = await compressFile(file, 1600, 0.85);
+      add(compressed);
+    } catch {
+      // Fallback: raw data URL if compression fails
+      const reader = new FileReader();
+      reader.onload = (ev) => add(ev.target?.result as string);
+      reader.readAsDataURL(file);
+    }
     e.target.value = "";
   };
 
