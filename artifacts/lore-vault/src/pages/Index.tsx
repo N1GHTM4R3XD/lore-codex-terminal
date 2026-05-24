@@ -147,7 +147,7 @@ function FolderSection({
               Brak postaci w tym folderze
             </p>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 pl-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pl-4">
               {characters.map((c) => (
                 <div key={c.id} className="relative group/card">
                   <CharacterCard
@@ -160,7 +160,7 @@ function FolderSection({
                   />
                   <button
                     onClick={() => onRemoveChar(c.id)}
-                    className="absolute top-2 left-2 z-20 h-6 w-6 bg-background/90 border border-border rounded-full grid place-items-center opacity-0 group-hover/card:opacity-100 transition-opacity hover:text-destructive"
+                    className="absolute bottom-2 left-3 z-30 h-6 w-6 bg-background/90 border border-border rounded-full grid place-items-center opacity-0 group-hover/card:opacity-100 transition-opacity hover:text-destructive"
                     title="Wyjmij z folderu"
                     aria-label="Wyjmij z folderu"
                   >
@@ -309,22 +309,22 @@ const Index = () => {
       </div>
 
       <main className="relative z-10">
-        <header className="container pt-16 pb-10">
+        <header className="container pt-10 sm:pt-16 pb-8 sm:pb-10">
           <div className="flex items-center gap-2 text-xs uppercase tracking-[0.4em] text-[hsl(var(--rune))] font-pixel animate-fade-in">
             <span className="h-px w-10 bg-[hsl(var(--rune))]" />
             Lore Vault
             <span className="h-px w-10 bg-[hsl(var(--rune))]" />
           </div>
-          <h1 className="mt-6 text-4xl md:text-6xl font-display rune-text leading-tight">
+          <h1 className="mt-4 sm:mt-6 text-3xl sm:text-4xl md:text-6xl font-display rune-text leading-tight">
             Archiwum
           </h1>
-          <p className="mt-3 max-w-2xl text-lg italic text-muted-foreground">
+          <p className="mt-2 sm:mt-3 max-w-2xl text-base sm:text-lg italic text-muted-foreground">
             Mroczny kodeks twoich bohaterów. Każda karta to własny świat — paleta, ramka,
             animacje, fonty i muzyka.
           </p>
 
           {/* Action bar */}
-          <div className="mt-6 flex flex-wrap items-center gap-3">
+          <div className="mt-5 flex flex-wrap items-center gap-2 sm:gap-3">
             <Button
               onClick={() => {
                 const c = addCharacter();
@@ -398,7 +398,7 @@ const Index = () => {
           </div>
 
           {/* Search bar */}
-          <div className="mt-5 relative max-w-sm">
+          <div className="mt-4 sm:mt-5 relative w-full max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
             <Input
               value={search}
@@ -428,7 +428,7 @@ const Index = () => {
                   <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground mb-4">
                     Postacie ({filteredChars!.length})
                   </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {filteredChars!.map((c) => (
                       <CharacterCard
                         key={c.id}
@@ -520,7 +520,7 @@ const Index = () => {
                           <span className="h-px flex-1 bg-border" />
                         </div>
                       )}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 animate-fade-in">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 animate-fade-in">
                         {(folders.length === 0 ? db.characters : unassignedChars).map((c) => (
                           <div key={c.id} className="relative group/card">
                             <CharacterCard
@@ -532,7 +532,7 @@ const Index = () => {
                               dragOverId={dragOverId}
                             />
                             {folders.length > 0 && (
-                              <div className="absolute top-2 left-2 z-20 opacity-0 group-hover/card:opacity-100 transition-opacity">
+                              <div className="absolute bottom-2 left-3 z-30 opacity-0 group-hover/card:opacity-100 transition-opacity">
                                 <Select onValueChange={(fid) => toggleCharInFolder(fid, c.id)}>
                                   <SelectTrigger className="h-6 w-6 p-0 border-0 bg-background/90 rounded-full">
                                     <FolderPlus className="h-3 w-3 m-auto" />
