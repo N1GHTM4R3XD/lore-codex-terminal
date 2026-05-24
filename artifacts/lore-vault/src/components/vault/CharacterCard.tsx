@@ -92,8 +92,12 @@ export const CharacterCard = ({ character, worlds, onDelete, onDragStart, onDrop
     <article
       data-palette={palette}
       className={cn(
-        "relative overflow-hidden group transition-all duration-200 bg-[hsl(var(--background))]",
-        isDragOver && "ring-2 ring-[hsl(var(--rune))] ring-offset-2 ring-offset-background scale-[1.01] z-20"
+        "relative overflow-hidden group transition-all duration-200",
+        "rounded-2xl",
+        "border-[3px] border-[hsl(var(--rune))]",
+        "shadow-[0_0_0_1px_hsl(var(--background)),0_0_28px_hsl(var(--rune)/0.45)]",
+        FRAME_CLASS[frame],
+        isDragOver && "scale-[1.01] z-20"
       )}
       style={fontStyle}
       onDragOver={handleDragOver}
@@ -109,7 +113,7 @@ export const CharacterCard = ({ character, worlds, onDelete, onDragStart, onDrop
             className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
           />
         ) : (
-          <div className="h-full w-full bg-[hsl(var(--card))]" />
+          <div className="h-full w-full bg-[hsl(var(--background))]" />
         )}
         {/* Gradient overlay for readability */}
         <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-black/20" />
@@ -117,17 +121,6 @@ export const CharacterCard = ({ character, worlds, onDelete, onDragStart, onDrop
 
       {/* ── Horizontal banner content ── */}
       <div className="relative z-10 aspect-[16/7] flex flex-col">
-
-        {/* Inner frame overlay — uses palette-scoped CSS vars for color */}
-        <div
-          className={cn(
-            "absolute inset-2 pointer-events-none z-20",
-            FRAME_CLASS[frame],
-            // Override bg-based frame styles to be transparent since image is behind
-            "!bg-transparent"
-          )}
-          aria-hidden
-        />
 
         <Link
           to={`/character/${id}`}

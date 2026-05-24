@@ -529,7 +529,7 @@ export const CardCustomizer = ({ character, update, customPalettes, addCustomPal
           <Sliders className="h-3.5 w-3.5 mr-1.5" />Personalizuj
         </Button>
       </DialogTrigger>
-      <DialogContent className="vault-panel max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="vault-panel max-w-2xl max-h-[90vh] overflow-y-auto" data-palette={character.palette}>
         <DialogHeader>
           <DialogTitle className="font-display rune-text text-2xl">Personalizacja karty</DialogTitle>
           <DialogDescription className="font-mono text-xs uppercase tracking-widest">
