@@ -192,6 +192,7 @@ export interface Character {
   id: string;
   name: string;
   tagline: string;
+  quote?: string;
   avatar: string;
   background: string;
   lore: string;
@@ -240,6 +241,7 @@ const makeChar = (over: Partial<Character>): Character => ({
   id: over.id ?? `char_${Math.random().toString(36).slice(2, 9)}`,
   name: "Bez imienia",
   tagline: "Nowa karta postaci",
+  quote: over.quote ?? "",
   avatar: "",
   background: "",
   lore: "",

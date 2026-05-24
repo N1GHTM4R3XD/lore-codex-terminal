@@ -146,7 +146,7 @@ export const Hero = ({ state, update }: Props) => {
 
   return (
     <header className="relative isolate overflow-hidden">
-      {/* background image */}
+      {/* ── Full-bleed background banner ── */}
       {state.background && (
         <div
           className="absolute inset-0 -z-10 bg-cover bg-center animate-fade-in"
@@ -158,26 +158,24 @@ export const Hero = ({ state, update }: Props) => {
       )}
       <div className="absolute inset-0 -z-10 bg-gradient-hero" />
       <div className="absolute inset-0 -z-10 bg-grain opacity-30 mix-blend-overlay" />
-      {/* vignette */}
       <div className="absolute inset-0 -z-10 bg-[radial-gradient(120%_80%_at_50%_50%,transparent_30%,hsl(var(--background))_100%)]" />
 
-      <div className="container relative py-20 md:py-28 lg:py-36">
+      <div className="container relative pt-12 md:pt-16 pb-6">
+        {/* Breadcrumb */}
         <div className="flex items-center gap-2 text-xs uppercase tracking-[0.4em] text-[hsl(var(--rune))] font-mono animate-fade-in">
           <span className="h-px w-10 bg-[hsl(var(--rune))]" />
           Lore Vault // Karta Postaci
           <span className="h-px w-10 bg-[hsl(var(--rune))]" />
         </div>
 
-        <div className="mt-10 grid gap-10 md:grid-cols-[auto,1fr] md:items-end">
-          {/* Avatar with background + border */}
-          <div className="relative group animate-scale-in">
-            {/* Subtle background glow behind avatar */}
-            <div className="absolute -inset-3 bg-gradient-rune opacity-30 blur-2xl rounded-full animate-rune-pulse" />
-            {/* Decorative ring */}
-            <div className="absolute -inset-1.5 rounded-full border border-[hsl(var(--rune)/0.2)]" />
+        {/* ── Banner row: avatar + info ── */}
+        <div className="mt-6 flex items-center gap-5 md:gap-7">
+          {/* Avatar */}
+          <div className="relative group animate-scale-in shrink-0">
+            <div className="absolute -inset-2 bg-gradient-rune opacity-25 blur-xl rounded-full animate-rune-pulse" />
             <div
               className={cn(
-                "relative h-40 w-40 md:h-48 md:w-48 overflow-hidden shadow-rune",
+                "relative h-24 w-24 md:h-32 md:w-32 overflow-hidden shadow-rune",
                 (state.avatarBorder ?? "rune") === "pixel" ? "rounded-none" : "rounded-full",
                 state.avatarBorder === "crown" ? "rounded-t-full" : "",
                 "avatar-border-" + (state.avatarBorder ?? "rune")
@@ -187,16 +185,16 @@ export const Hero = ({ state, update }: Props) => {
                 <img src={state.avatar} alt={state.name} className="h-full w-full object-cover" />
               ) : (
                 <div className="h-full w-full grid place-items-center bg-muted">
-                  <User className="h-12 w-12 text-muted-foreground" />
+                  <User className="h-10 w-10 text-muted-foreground" />
                 </div>
               )}
             </div>
             <button
               onClick={() => { setAvOpen((v) => !v); setBgOpen(false); }}
-              className="absolute -bottom-2 -right-2 h-10 w-10 grid place-items-center rounded-full bg-card border border-border hover:border-[hsl(var(--rune))] transition"
+              className="absolute -bottom-1 -right-1 h-8 w-8 grid place-items-center rounded-full bg-card border border-border hover:border-[hsl(var(--rune))] transition"
               aria-label="Zmień awatar"
             >
-              <ImageIcon className="h-4 w-4" />
+              <ImageIcon className="h-3.5 w-3.5" />
             </button>
             {avOpen && (
               <ImagePicker
@@ -210,43 +208,58 @@ export const Hero = ({ state, update }: Props) => {
             )}
           </div>
 
-          {/* Name + tagline */}
-          <div className="space-y-4 animate-fade-in">
+          {/* Name + tagline + quote box */}
+          <div className="flex-1 min-w-0 space-y-2 animate-fade-in">
             {editing ? (
-              <div className="vault-panel p-4 rounded-lg space-y-3 backdrop-blur-sm">
+              <div className="vault-panel p-3 rounded-lg space-y-2 backdrop-blur-sm max-w-xl">
                 <div>
-                  <label className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground block mb-1">Imię / nazwa postaci</label>
+                  <label className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground block mb-1">Imię / nazwa</label>
                   <Input
                     autoFocus
                     value={state.name}
                     onChange={(e) => update({ name: e.target.value })}
-                    className="text-xl md:text-2xl h-auto py-2.5 font-display bg-card border-[hsl(var(--rune)/0.3)] focus:border-[hsl(var(--rune))]"
+                    className="text-lg md:text-xl h-auto py-2 font-display bg-card border-[hsl(var(--rune)/0.3)] focus:border-[hsl(var(--rune))]"
                   />
                 </div>
                 <div>
-                  <label className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground block mb-1">Tagline / motto</label>
+                  <label className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground block mb-1">Tytuł / klasa / rasa</label>
                   <Input
                     value={state.tagline}
                     onChange={(e) => update({ tagline: e.target.value })}
-                    className="font-body italic bg-card border-[hsl(var(--rune)/0.3)] focus:border-[hsl(var(--rune))]"
-                    placeholder="Krótkie motto lub opis postaci…"
+                    className="font-body italic text-sm bg-card border-[hsl(var(--rune)/0.3)] focus:border-[hsl(var(--rune))]"
+                    placeholder="Krótki opis postaci..."
+                  />
+                </div>
+                <div>
+                  <label className="font-mono text-[9px] uppercase tracking-widest text-muted-foreground block mb-1">Cytat / kwestia</label>
+                  <Input
+                    value={(state as any).quote ?? ""}
+                    onChange={(e) => update({ quote: e.target.value })}
+                    className="font-body italic text-sm bg-card border-[hsl(var(--rune)/0.3)] focus:border-[hsl(var(--rune))]"
+                    placeholder="Złota myśl postaci..."
                   />
                 </div>
               </div>
             ) : (
               <>
-                <div className="flex items-center gap-3 flex-wrap">
-                  <h1 className="text-4xl md:text-6xl lg:text-7xl font-display rune-text text-balance leading-tight">
-                    {state.name}
-                  </h1>
-                </div>
-                <p className="text-lg md:text-xl italic text-[hsl(var(--ink))] max-w-2xl text-balance font-body">
+                <h1 className="text-3xl md:text-4xl lg:text-5xl font-display rune-text text-balance leading-tight">
+                  {state.name}
+                </h1>
+                <p className="text-sm md:text-base italic text-[hsl(var(--ink))] text-balance font-body">
                   {state.tagline}
                 </p>
+                {/* Quote box */}
+                {(state as any).quote && (
+                  <div className="mt-2 vault-panel px-3 py-2 rounded-lg border-l-2 border-[hsl(var(--rune)/0.6)] max-w-xl">
+                    <p className="font-body italic text-sm text-muted-foreground">
+                      “{(state as any).quote}”
+                    </p>
+                  </div>
+                )}
               </>
             )}
 
-            <div className="flex flex-wrap gap-2 pt-2">
+            <div className="flex flex-wrap gap-2 pt-1">
               <Button
                 variant="outline"
                 size="sm"
@@ -281,6 +294,7 @@ export const Hero = ({ state, update }: Props) => {
           </div>
         </div>
       </div>
+
       <div className="h-px bg-gradient-to-r from-transparent via-[hsl(var(--rune)/0.6)] to-transparent" />
 
       {/* Avatar cropper modal */}

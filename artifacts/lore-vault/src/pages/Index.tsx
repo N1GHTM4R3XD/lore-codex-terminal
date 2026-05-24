@@ -148,7 +148,7 @@ function FolderSection({
               Brak postaci w tym folderze
             </p>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pl-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 pl-4">
               {characters.map((c) => (
                 <div key={c.id} className="relative group/card">
                   <CharacterCard
@@ -430,7 +430,7 @@ const Index = () => {
                   <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-muted-foreground mb-4">
                     Postacie ({filteredChars!.length})
                   </p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                     {filteredChars!.map((c) => (
                       <CharacterCard
                         key={c.id}
@@ -522,7 +522,7 @@ const Index = () => {
                           <span className="h-px flex-1 bg-border" />
                         </div>
                       )}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 animate-fade-in">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 animate-fade-in">
                         {(folders.length === 0 ? db.characters : unassignedChars).map((c) => (
                           <div key={c.id} className="relative group/card">
                             <CharacterCard
