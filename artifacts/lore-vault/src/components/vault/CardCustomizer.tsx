@@ -539,6 +539,17 @@ export const CardCustomizer = ({ character, update, customPalettes, addCustomPal
 
         <div className="space-y-6 pt-2">
 
+          {/* ── Live card preview (always visible) ── */}
+          <section>
+            <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-2">Podgląd karty:</p>
+            <FramePreview
+              character={character}
+              frame={currentFrame}
+              avatarBorder={currentAvatarBorder}
+              fonts={fonts}
+            />
+          </section>
+
           {/* ── Palette ── */}
           <section>
             <div className="flex items-center justify-between mb-3">
@@ -602,16 +613,6 @@ export const CardCustomizer = ({ character, update, customPalettes, addCustomPal
                   ))}
                 </div>
 
-                {/* Live frame + avatar preview */}
-                <div className="space-y-1.5">
-                  <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Podgląd ramki:</p>
-                  <FramePreview
-                    character={character}
-                    frame={currentFrame}
-                    avatarBorder={currentAvatarBorder}
-                    fonts={fonts}
-                  />
-                </div>
               </CollapsibleContent>
             </Collapsible>
           </section>
